@@ -16,13 +16,8 @@ def validate_user_yaml(user_yaml):
     print("OK")
 
 
-# TODO: get(dict, field)
-def get_policy_ids(user_yaml_dict):
-    return [p["id"] for p in user_yaml_dict["rbac"].get("policies", [])]
-
-
-def get_group_names(user_yaml_dict):
-    return [g["name"] for g in user_yaml_dict["rbac"].get("groups", [])]
+def get_field_from_list(li, field):
+    return [item.get(field) for item in li]
 
 
 def resource_tree_to_paths(user_yaml_dict):
@@ -91,22 +86,24 @@ def validate_syntax(user_yaml_dict):
 
     # make sure there are no duplicates
     # - in rbac.groups.name
+    existing_groups = get_field_from_list(
+        user_yaml_dict["rbac"].get("groups", []), "name"
+    )
     duplicate_group_names = [
         group_name
-        for group_name, count in collections.Counter(
-            get_group_names(user_yaml_dict)
-        ).items()
+        for group_name, count in collections.Counter(existing_groups).items()
         if count > 1
     ]
     assert len(duplicate_group_names) == 0, "Duplicate group names: {}".format(
         duplicate_group_names
     )
     # - in rbac.policies.id
+    existing_policies = get_field_from_list(
+        user_yaml_dict["rbac"].get("policies", []), "id"
+    )
     duplicate_policy_ids = [
         policy_id
-        for policy_id, count in collections.Counter(
-            get_policy_ids(user_yaml_dict)
-        ).items()
+        for policy_id, count in collections.Counter(existing_policies).items()
         if count > 1
     ]
     assert len(duplicate_policy_ids) == 0, "Duplicate policy ids: {}".format(
@@ -116,7 +113,9 @@ def validate_syntax(user_yaml_dict):
 
 def validate_groups(user_yaml_dict):
     print("- Validating groups")
-    existing_policies = get_policy_ids(user_yaml_dict)
+    existing_policies = get_field_from_list(
+        user_yaml_dict["rbac"].get("policies", []), "id"
+    )
     for group in user_yaml_dict["rbac"].get("groups", []):
         # check users are defined
         for user_email in group["users"]:
@@ -151,17 +150,27 @@ def validate_resources(user_yaml_dict):
 
 def validate_roles(user_yaml_dict):
     print("- Validating roles")
-    # TODO
+    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
+    for policy in user_yaml_dict["rbac"].get("policies", []):
+        for role_id in policy["role_ids"]:
+            assert (
+                role_id in existing_roles
+            ), 'Role "{}" in policy "{}" is not defined in list of resources'.format(
+                role_id, policy["id"]
+            )
 
 
 def validate_users(user_yaml_dict):
     print("- Validating users")
+    existing_policies = get_field_from_list(
+        user_yaml_dict["rbac"].get("policies", []), "id"
+    )
     for user_email, user_access in user_yaml_dict["users"].items():
         # check policies are defined
         user_policies = user_access.get("policies", [])
-        invalid_policies = set(user_policies).difference(get_policy_ids(user_yaml_dict))
+        invalid_policies = set(user_policies).difference(existing_policies)
         assert (
             len(invalid_policies) == 0
-        ), 'Policies {} assigned to user "{}" are not defined in "rbac" section'.format(
+        ), 'Policies {} for user "{}" are not defined in list of policies'.format(
             invalid_policies, user_email
         )
