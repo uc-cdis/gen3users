@@ -2,13 +2,15 @@ import collections
 import yaml
 
 
-def validate_user_yaml(user_yaml):
+def validate_user_yaml(user_yaml, name="user.yaml"):
     """
     Runs all the validation checks against a user.yaml file.
 
     Args:
         user_yaml (str): Contents of a user.yaml file.
+        name (str): Displayable name of the tested file.
     """
+    print("Validating {}".format(name))
     try:
         user_yaml_dict = yaml.safe_load(user_yaml)
     except:
@@ -18,7 +20,7 @@ def validate_user_yaml(user_yaml):
     validate_groups(user_yaml_dict)
     validate_policies(user_yaml_dict)
     validate_users(user_yaml_dict)
-    print("OK")
+    print("OK\n")
 
 
 def get_field_from_list(li, field):
@@ -48,11 +50,11 @@ def resource_tree_to_paths(user_yaml_dict):
     """
     paths_list = []
     for resource in user_yaml_dict["rbac"].get("resources", []):
-        resource_tree_to_paths_rec("", paths_list, resource)
+        resource_tree_to_paths_recursive("", paths_list, resource)
     return paths_list
 
 
-def resource_tree_to_paths_rec(root, paths_list, resource):
+def resource_tree_to_paths_recursive(root, paths_list, resource):
     """
     Recursively builds resource paths by appending a slash.
 
@@ -65,7 +67,7 @@ def resource_tree_to_paths_rec(root, paths_list, resource):
     if resource["name"] not in ["programs", "projects"]:
         paths_list.append(new_root)
     for sub in resource.get("subresources", []):
-        resource_tree_to_paths_rec(new_root, paths_list, sub)
+        resource_tree_to_paths_recursive(new_root, paths_list, sub)
 
 
 def validate_resource_syntax_recursive(resource):
@@ -196,10 +198,14 @@ def validate_policies(user_yaml_dict):
         for resource_path in policy["resource_paths"]:
             assert resource_path.startswith(
                 "/"
-            ), 'Resource path "{}" should start with a "/"'.format(resource_path)
+            ), 'Resource path "{}" in policy "{}" should start with a "/"'.format(
+                resource_path, policy["id"]
+            )
             assert (
                 resource_path in existing_resources
-            ), 'Resource "{}" is not defined in resources tree'.format(resource_path)
+            ), 'Resource "{}" in policy "{}" is not defined in resources tree'.format(
+                resource_path, policy["id"]
+            )
 
         # checks roles are defined
         for role_id in policy["role_ids"]:
