@@ -13,6 +13,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     print("Validating {}".format(name))
     try:
         user_yaml_dict = yaml.safe_load(user_yaml)
+        assert user_yaml_dict, "Empty file"
     except:
         print("Unable to parse YAML file")
         raise
