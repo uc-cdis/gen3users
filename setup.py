@@ -8,17 +8,17 @@ def get_version():
             ["git", "describe", "--tags", "--abbrev=0", "--match=[0-9]*"]
         )
         return tag.decode("utf-8").strip("\n")
-    except Exception:
+    except Exception as e:
         raise RuntimeError(
-            "The version number cannot be extracted from git tag in this source "
+            "{}\nThe version number cannot be extracted from git tag in this source "
             "distribution; please either download the source from PyPI, or check out "
-            "from GitHub and make sure that the git CLI is available."
+            "from GitHub and make sure that the git CLI is available.".format(e)
         )
 
 
 setup(
     name="gen3users",
-    version=get_version(),
+    version="0.0.0", #get_version(), # TODO put this back
     description="Utils for Gen3 commons user management",
     url="https://github.com/uc-cdis/gen3users",
     license="Apache",
