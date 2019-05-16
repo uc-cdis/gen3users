@@ -3,6 +3,12 @@ import yaml
 
 
 def validate_user_yaml(user_yaml):
+    """
+    Runs all the validation checks against a user.yaml file.
+
+    Args:
+        user_yaml (str): Contents of a user.yaml file.
+    """
     try:
         user_yaml_dict = yaml.safe_load(user_yaml)
     except:
@@ -10,20 +16,35 @@ def validate_user_yaml(user_yaml):
         raise
     validate_syntax(user_yaml_dict)
     validate_groups(user_yaml_dict)
-    validate_resources(user_yaml_dict)
-    validate_roles(user_yaml_dict)
+    validate_policies(user_yaml_dict)
     validate_users(user_yaml_dict)
     print("OK")
 
 
 def get_field_from_list(li, field):
+    """
+    Returns the field value for each dictionary in a list of dictionaries.
+
+    Args:
+        li (list[dict]): List of dictionaries.
+        field (str): Name of the property to select.
+
+    Return:
+        (list)
+    """
     return [item.get(field) for item in li]
 
 
 def resource_tree_to_paths(user_yaml_dict):
     """
     Builds the list of existing resource paths from the rbac.resources
-    section of the user.yaml
+    section of the user.yaml.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        paths_list(list[str]): list of existing resource paths.
     """
     paths_list = []
     for resource in user_yaml_dict["rbac"].get("resources", []):
@@ -33,7 +54,12 @@ def resource_tree_to_paths(user_yaml_dict):
 
 def resource_tree_to_paths_rec(root, paths_list, resource):
     """
-    Recursively builds resource paths by appending a slash
+    Recursively builds resource paths by appending a slash.
+
+    Args:
+        root (str): current resource path.
+        paths_list (list[str]): list of existing resource paths.
+        resource (dict): current resource.
     """
     new_root = "{}/{}".format(root, resource["name"])
     if resource["name"] not in ["programs", "projects"]:
@@ -45,7 +71,10 @@ def resource_tree_to_paths_rec(root, paths_list, resource):
 def validate_resource_syntax_recursive(resource):
     """
     Recursively validates the resource tree by checking the syntax
-    of subresources
+    of subresources.
+
+    Args:
+        resource (dict): current resource.
     """
     assert "name" in resource, "Resource without name: {}".format(resource)
     if resource["name"] == "programs" or resource["name"] == "projects":
@@ -57,6 +86,13 @@ def validate_resource_syntax_recursive(resource):
 
 
 def validate_syntax(user_yaml_dict):
+    """
+    Validates the syntax of the user.yaml by checking expected sections and
+    fields are present. Also checks that there are no duplicates in key fields.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+    """
     print("- Validating user.yaml syntax")
 
     # check expected sections are defined
@@ -112,6 +148,14 @@ def validate_syntax(user_yaml_dict):
 
 
 def validate_groups(user_yaml_dict):
+    """
+    Validates the "groups" section of the user.yaml by checking that the users
+    and policies used in the groups are defined in the lists of users and in
+    the list of policies respectively.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+    """
     print("- Validating groups")
     existing_policies = get_field_from_list(
         user_yaml_dict["rbac"].get("policies", []), "id"
@@ -133,12 +177,22 @@ def validate_groups(user_yaml_dict):
             )
 
 
-def validate_resources(user_yaml_dict):
-    print("- Validating resources")
-    # check resource paths in "rbac.policies" are valid
-    # given "rbac.resources" resource tree
+def validate_policies(user_yaml_dict):
+    """
+    Validates the "policies" section of the user.yaml by checking that the
+    roles and resources used in the policies are defined in the list of roles
+    and in the resource tree respectively.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+    """
+    print("- Validating policies")
     existing_resources = resource_tree_to_paths(user_yaml_dict)
+    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
     for policy in user_yaml_dict["rbac"].get("policies", []):
+
+        # check resource paths in "rbac.policies" are valid
+        # given "rbac.resources" resource tree
         for resource_path in policy["resource_paths"]:
             assert resource_path.startswith(
                 "/"
@@ -147,20 +201,23 @@ def validate_resources(user_yaml_dict):
                 resource_path in existing_resources
             ), 'Resource "{}" is not defined in resources tree'.format(resource_path)
 
-
-def validate_roles(user_yaml_dict):
-    print("- Validating roles")
-    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
-    for policy in user_yaml_dict["rbac"].get("policies", []):
+        # checks roles are defined
         for role_id in policy["role_ids"]:
             assert (
                 role_id in existing_roles
-            ), 'Role "{}" in policy "{}" is not defined in list of resources'.format(
+            ), 'Role "{}" in policy "{}" is not defined in list of roles'.format(
                 role_id, policy["id"]
             )
 
 
 def validate_users(user_yaml_dict):
+    """
+    Validates the "users" section of the user.yaml by checking that the
+    policies assigned to the users are defined in the list of policies.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+    """
     print("- Validating users")
     existing_policies = get_field_from_list(
         user_yaml_dict["rbac"].get("policies", []), "id"
