@@ -18,7 +18,7 @@ def get_version():
 
 setup(
     name="gen3users",
-    version="0.0.0", #get_version(), # TODO put this back
+    version=get_version(),
     description="Utils for Gen3 commons user management",
     url="https://github.com/uc-cdis/gen3users",
     license="Apache",
