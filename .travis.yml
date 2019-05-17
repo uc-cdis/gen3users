@@ -1,23 +1,17 @@
 language: python
-
 dist: xenial
-
 python:
-   - "3.6"
-
+- '3.6'
 install:
-   - pip install pipenv
-   - pipenv install --dev --deploy --python `which python`
-   - pip install -e git+https://git@github.com/uc-cdis/wool.git#egg=wool
-
+- pip install pipenv
+- pipenv install --dev --deploy --python `which python`
+- pip install -e git+https://git@github.com/uc-cdis/wool.git#egg=wool
 script:
-  - if [[ $PR_NUMBER != false ]]; then env; wool; fi
-
+- if [[ $PR_NUMBER != false ]]; then GITHUB_TOKEN=$GH_TOKEN wool; fi
 before_deploy:
-  - sed -i.bak "s/=get_version()/='$TRAVIS_TAG'/g" setup.py
-  - cat setup.py
-  - if [ $(python setup.py --version) == '0.0.0' ]; then travis_terminate 1; fi
-
+- sed -i.bak "s/=get_version()/='$TRAVIS_TAG'/g" setup.py
+- cat setup.py
+- if [ $(python setup.py --version) == '0.0.0' ]; then travis_terminate 1; fi
 deploy:
   provider: pypi
   user: uc-ctds
@@ -25,13 +19,11 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
-
 after_deploy:
-  - "./release_notes.sh"
-
+- "./release_notes.sh"
 env:
   matrix:
-    - REPOSITORY="uc-cdis/gen3users" PR_NUMBER="$TRAVIS_PULL_REQUEST"
+  - REPOSITORY="uc-cdis/gen3users" PR_NUMBER="$TRAVIS_PULL_REQUEST"
   global:
-    - PIPENV_IGNORE_VIRTUALENVS=1
-    - secure: BiMTpYozkM87YJiQ1JH6M6dYDoxxQGZ3B1j9rxirfW1c9Vj4kSHZBx+fsE0lFOt18aB39gUQ6jdj3WmhOAxKt2heJ679fQdFMHQa6abpLqwUj/wWTsNchOaDO1qZ64sZROqXbGqvsa+RGjTa7pWMnLPkdv4fzaJH1DO6htmOcaN9iymeCBKJ8lJ8fnwZGBx7cWWiBtGrMPS8pkQD76shFUnYDxrQhmrnR4XnpuANRtP1rIZv8tdn1pcph5LWsmj+DeDGNqRl2j4BLXbR0tsh+NcSDh2edbIEK6qAL+cG8FnU8Q3RUa9QU5KGVh1Ld9BXUPg5o5Kk+HLmguQ9c3lYNXJs8UBOXGJIq5KNnXEwOF0l+fD6+yDfY+dfcyfnQ5LKPmqfGhXMLjRZZCaMqdwS0yc5PdhT2jU6ZJJeRkYSfjW0Fh7G9q2VpPiHOZKNoliSBPtO44QpySisiZy9Z1k4zwm0f7Y0J1cuRZS3SBlo40gkeG0cgsKBRnrRCq5KifMe963kd2Gx9GFLyd9+AEoYaZ3zO1Kj4wtGQBYPu8pts4HKhmRKZmf3pRSgJswgyiyVikGQq/XVN/PnqoX6Lplf7zrPChj3p+KL7+8/QUjg8KgSfjHU5nnN0oanOAnLk4Zz9sdZkB4W8enOUL0ppbN40tDnAWWLaRVhfnEHHESfgZw=
+  - PIPENV_IGNORE_VIRTUALENVS=1
+  - secure: WzD1fA+u5j3jQ1+13oH6syqch19lgusrOLmh+NgZ6l4Z/BlE0ZckDPkNGuYqtWtwdZSNQPhhT0d0drnn2ylS3KT5AvZIktTiO2ytQ04lNsEfd3syXildCuoo9Tx9YWCK8khKL9XU3ZqZIhnc0O5Hf/FGxmzJXQLq3zPOSFluxYvINdXr51YOhYOjuy7hyRRprcF9tTwDMv/Gc8/ogg/UOH+FAFp+ygAjoihJCpL9KhluBvUQWAIh8Es5r4dpCgVaQUL+4tffP/yMqrdP3MT+TqOuepTOz7NQvdboj86xCGleW9SO+3/W7cBGz/SLhQvJgLx6xiuMp1vDa0cblLsTDy9ZzraG0Z5o0SI8t36b/XgKg3gP13zYkb9KpcsevZ5H2tSTyKm0WLW4i4NTelTmH8T3SxtPP6hlvbfG4FEK5UGLt74PasH/gp6yjkqw6JX1fcEnPSkvPMjOH2q0wOyJn5tMzJ9uzRtn0oh6LfltkrROM1YcrCT91eGfnCh/PolN3n7IimwW+5vm+GlzrskrdY+wIx6Qr8m3qcIdo4YkRXzXYp6cuaobRLm9RsgrslhBtCrRYetzplPd1f8jnoACxk817Tb37+vZzZOXgvHyC+8SnHt2xWc/XwaKSmbfGm+baUTqvmjMHbhDZgHFe5GtEb/+8gwuGwdXsEJdUsuZzfo=
