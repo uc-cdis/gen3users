@@ -24,4 +24,5 @@ setup(
     license="Apache",
     packages=["gen3users"],
     install_requires=["PyYAML~=5.1"],
+    entry_points={"console_scripts": ["gen3users=gen3users.main:main"]},
 )

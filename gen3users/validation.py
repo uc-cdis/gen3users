@@ -21,7 +21,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     validate_groups(user_yaml_dict)
     validate_policies(user_yaml_dict)
     validate_users(user_yaml_dict)
-    print("OK\n")
+    print("OK")
 
 
 def get_field_from_list(li, field):
