@@ -7,7 +7,7 @@ install:
 - pipenv install --dev --deploy --python `which python`
 - pip install -e git+https://git@github.com/uc-cdis/wool.git#egg=wool
 script:
-- if [[ $PR_NUMBER != false ]]; then GITHUB_TOKEN=$GH_TOKEN wool; fi
+- if [[ $PR_NUMBER != false ]]; then env; GITHUB_TOKEN=$GH_TOKEN wool; fi
 before_deploy:
 - sed -i.bak "s/=get_version()/='$TRAVIS_TAG'/g" setup.py
 - cat setup.py
@@ -26,4 +26,4 @@ env:
   - REPOSITORY="uc-cdis/gen3users" PR_NUMBER="$TRAVIS_PULL_REQUEST"
   global:
   - PIPENV_IGNORE_VIRTUALENVS=1
-  - secure: WzD1fA+u5j3jQ1+13oH6syqch19lgusrOLmh+NgZ6l4Z/BlE0ZckDPkNGuYqtWtwdZSNQPhhT0d0drnn2ylS3KT5AvZIktTiO2ytQ04lNsEfd3syXildCuoo9Tx9YWCK8khKL9XU3ZqZIhnc0O5Hf/FGxmzJXQLq3zPOSFluxYvINdXr51YOhYOjuy7hyRRprcF9tTwDMv/Gc8/ogg/UOH+FAFp+ygAjoihJCpL9KhluBvUQWAIh8Es5r4dpCgVaQUL+4tffP/yMqrdP3MT+TqOuepTOz7NQvdboj86xCGleW9SO+3/W7cBGz/SLhQvJgLx6xiuMp1vDa0cblLsTDy9ZzraG0Z5o0SI8t36b/XgKg3gP13zYkb9KpcsevZ5H2tSTyKm0WLW4i4NTelTmH8T3SxtPP6hlvbfG4FEK5UGLt74PasH/gp6yjkqw6JX1fcEnPSkvPMjOH2q0wOyJn5tMzJ9uzRtn0oh6LfltkrROM1YcrCT91eGfnCh/PolN3n7IimwW+5vm+GlzrskrdY+wIx6Qr8m3qcIdo4YkRXzXYp6cuaobRLm9RsgrslhBtCrRYetzplPd1f8jnoACxk817Tb37+vZzZOXgvHyC+8SnHt2xWc/XwaKSmbfGm+baUTqvmjMHbhDZgHFe5GtEb/+8gwuGwdXsEJdUsuZzfo=
+  - secure: Y8lvxm4A28mVuYyigHNpW4r4MI4NsrOr2agprV/Qkjuk0xEqLWSIcVly1Gi2foVLb+ahNl+anmBjMXiuBQLSnA+ZX3/AQvkCkCzUOM6U0HOtbl9mpPg7EtxAiXwmCLu4/aHLYa2rx+7FYCz+qry2SV3wDGWYoBP1ITdAgcpztAYx69V8BBqDseI8liFxJt9ZvgZQdyhpVBfIbnpyN8n7efw/NFtUOmsj9teXlCibPjSKXzAITreibQJR6TPy/ksgDSOhVn46jfCxa1NQG9uElM2Ehjv3+V4PYmEyLmyWdb3zWvLDt8CEw1SuEMX5PT8aE1Vi/WVVoHKMWTcaFTQLVeDvgchtbYxhp0MgHMOt0t00B/O/WwpKsE4hSFAcK9SAAHEIJ80IpRkHU4G/7BjZIUaKlgU/XBmTa+cn+y19q78hL8RyXRWeslAk9/t5pfpLeuzvdx/oYl0vzdmSM7XNwz87YOg+g9+CkJRZD199QVhBKgioE77j8FSQVz6jfxm/8khjEPT0r46IxveCej4kqLQaZzjymVo3jteKEHZELF3u3kpzC4GlbjKvc7k3SGoHfW+SiANFVPAncefBM7VvlBHk15OF4YfPX1CVlu96tuWFAVvL64OOdvf9SCxm40zlsc3hYTdRXZFGdbfkniab036bu6FvYTNkbLVEiyzVKwE=
