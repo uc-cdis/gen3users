@@ -4,7 +4,13 @@ Utils for Gen3 commons user management.
 
 ## user.yaml validation
 
-How to validate a `user.yaml` file:
+Validate a `user.yaml` file using the CLI:
+```
+pip install gen3users
+gen3users validate first_user.yaml second_user.yaml
+```
+
+Validate a `user.yaml` file in a Python script:
 ```
 from gen3users.validation import validate_user_yaml
 
