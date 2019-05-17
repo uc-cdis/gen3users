@@ -19,8 +19,11 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
+  password:
+    secure: zvUtKctGWJ2R7sdRPTcIvz8C1aYuwV5XoSJpDwLtkTU412JCTSo/5Uh9eIq5N/Oj3+BGCjgXzWN8l4spG5feCqzvcmBezUFsvnnElYaxrMWy5EY1SsLsaHq5arhDE5nCx9Trk2jg2KayWVdGSu3iDobZETX/5ozz/OPWSJQsNHzbeHY3SQOU4nDzlXHqxSVEg27Fl3KQA8v2rPk6hKmIeK5T+mMKzQ2P8HxKh6HQ+fgfy7T4bcZev8ojYsqSGxIgKMESa2/FX4tHdwQZkVd4KVM4QHv2szxuJovGzbkDSFsQoAQjWi75AIWtgrb6kCp6i+4afOB6l7Nxbqbze91Sy3pkLMsrLohIMP5oeX15Mn6W8RnwVj6LSmxFLFbfE0crZEI626uD5wwCaQ+rZwBSIPNYZYyVsZroWkcbIea8qpL7T7vbGYXnWS9GW5yfhjRirEqbI6E1Yw1+K5E83zsoMqMD977KVICMUyrF+iEe/hXA6gAea/xsI+0MNmiaup2Jdhq1yD0KyMNOE2Jk+IDY7zZII0qy+N7i56DphXKil/V9xNU7B0zUWGqkaGMqK42ky+U90vP4dW6syX9B1RQknqwhcjrQMPlKsx61pqIkZFsccZpcpx1hkCzusRvHeihGCA3h+G3brHXU9Lbvc0MAcVu4ES7MidkFS5DYutFr6Sw=
 after_deploy:
-- "./release_notes.sh"
+- pip install gen3git
+- gen3git release
 env:
   matrix:
   - REPOSITORY="uc-cdis/gen3users" PR_NUMBER="$TRAVIS_PULL_REQUEST"

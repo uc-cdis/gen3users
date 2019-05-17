@@ -10,10 +10,10 @@ def get_version():
         return tag.decode("utf-8").strip("\n")
     except Exception as e:
         raise RuntimeError(
-            "{}\nThe version number cannot be extracted from git tag in this source "
+            "The version number cannot be extracted from git tag in this source "
             "distribution; please either download the source from PyPI, or check out "
-            "from GitHub and make sure that the git CLI is available.".format(e)
-        )
+            "from GitHub and make sure that the git CLI is available."
+        ) from e
 
 
 setup(
