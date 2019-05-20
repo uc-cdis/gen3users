@@ -1,4 +1,5 @@
 from setuptools import setup
+from six import raise_from
 from subprocess import check_output
 
 
@@ -9,11 +10,14 @@ def get_version():
         )
         return tag.decode("utf-8").strip("\n")
     except Exception as e:
-        raise RuntimeError(
-            "The version number cannot be extracted from git tag in this source "
-            "distribution; please either download the source from PyPI, or check out "
-            "from GitHub and make sure that the git CLI is available."
-        ) from e
+        raise_from(
+            RuntimeError(
+                "The version number cannot be extracted from git tag in this source "
+                "distribution; please either download the source from PyPI, or check out "
+                "from GitHub and make sure that the git CLI is available."
+            ),
+            e,
+        )
 
 
 setup(

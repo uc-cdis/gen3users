@@ -5,6 +5,7 @@ verify_ssl = true
 
 [packages]
 PyYAML = "~=5.1"
+six = "~=1.12.0"
 
 [dev-packages]
 
