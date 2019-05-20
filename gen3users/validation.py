@@ -99,7 +99,10 @@ def validate_syntax(user_yaml_dict):
     print("- Validating user.yaml syntax")
 
     # check expected sections are defined
-    assert "rbac" in user_yaml_dict, 'Missing "rbac" section'
+    # assert "rbac" in user_yaml_dict, 'Missing "rbac" section'
+    # TODO: after all user.yamls are migrated to new format, uncomment the assertion and remove these 2 lines (waiting on dcfstaging)
+    if "rbac" not in user_yaml_dict:
+        user_yaml_dict["rbac"] = {}
     assert "users" in user_yaml_dict, 'Missing "users" section'
 
     # check expected fields are defined
@@ -122,6 +125,17 @@ def validate_syntax(user_yaml_dict):
     # - in rbac.resources
     for resource in user_yaml_dict["rbac"].get("resources", []):
         validate_resource_syntax_recursive(resource)
+    # - in users
+    for user_email, user_access in user_yaml_dict["users"].items():
+        for project in user_access.get("projects", {}):
+            assert (
+                "auth_id" in project
+            ), 'Project without auth_id for user "{}": {}'.format(user_email, project)
+            assert (
+                "privilege" in project
+            ), 'Project "{}" without privilege section for user "{}"'.format(
+                project["auth_id"], user_email
+            )
 
     # make sure there are no duplicates
     # - in rbac.groups.name
@@ -179,6 +193,15 @@ def validate_groups(user_yaml_dict):
                 policy_id, group["name"]
             )
 
+    for predefined_group in ["anonymous_policies", "all_users_policies"]:
+        # check policies are defined
+        for policy_id in user_yaml_dict["rbac"].get(predefined_group, []):
+            assert (
+                policy_id in existing_policies
+            ), 'Policy "{}" in group "{}" is not defined in list of policies'.format(
+                policy_id, predefined_group
+            )
+
 
 def validate_policies(user_yaml_dict):
     """
@@ -229,7 +252,9 @@ def validate_users(user_yaml_dict):
     existing_policies = get_field_from_list(
         user_yaml_dict["rbac"].get("policies", []), "id"
     )
+    existing_resources = resource_tree_to_paths(user_yaml_dict)
     for user_email, user_access in user_yaml_dict["users"].items():
+
         # check policies are defined
         user_policies = user_access.get("policies", [])
         invalid_policies = set(user_policies).difference(existing_policies)
@@ -238,3 +263,26 @@ def validate_users(user_yaml_dict):
         ), 'Policies {} for user "{}" are not defined in list of policies'.format(
             invalid_policies, user_email
         )
+
+        # check resource paths in "users.projects.resource" are valid
+        # given "rbac.resources" resource tree
+        for project in user_access.get("projects", {}):
+            if "resource" in project:
+                assert project["resource"].startswith(
+                    "/"
+                ), 'Resource path "{}" in project "{}" for user "{}" should start with a "/"'.format(
+                    project["resource"], project["auth_id"], user_email
+                )
+
+                assert (
+                    project["resource"] in existing_resources
+                ), 'Resource "{}" in project "{}" for user "{}" is not defined in resources tree'.format(
+                    project["resource"], project["auth_id"], user_email
+                )
+
+                parts = project["resource"].split("/")
+                assert (
+                    project["auth_id"] == parts[-1]
+                ), 'auth_id "{}" for user "{}" does not correspond to resource "{}"'.format(
+                    project["auth_id"], user_email, project["resource"]
+                )
