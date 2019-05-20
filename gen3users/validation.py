@@ -279,10 +279,3 @@ def validate_users(user_yaml_dict):
                 ), 'Resource "{}" in project "{}" for user "{}" is not defined in resources tree'.format(
                     project["resource"], project["auth_id"], user_email
                 )
-
-                parts = project["resource"].split("/")
-                assert (
-                    project["auth_id"] == parts[-1]
-                ), 'auth_id "{}" for user "{}" does not correspond to resource "{}"'.format(
-                    project["auth_id"], user_email, project["resource"]
-                )
