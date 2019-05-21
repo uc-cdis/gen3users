@@ -20,10 +20,16 @@ def get_version():
         )
 
 
+def get_readme():
+    with open("README.md", "r") as f:
+        return f.read()
+
+
 setup(
     name="gen3users",
     version=get_version(),
     description="Utils for Gen3 commons user management",
+    long_description=get_readme(),
     url="https://github.com/uc-cdis/gen3users",
     license="Apache",
     packages=["gen3users"],
