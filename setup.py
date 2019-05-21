@@ -1,6 +1,6 @@
-from setuptools import setup
-from six import raise_from
 from subprocess import check_output
+
+from setuptools import setup
 
 
 def get_version():
@@ -9,15 +9,13 @@ def get_version():
             ["git", "describe", "--tags", "--abbrev=0", "--match=[0-9]*"]
         )
         return tag.decode("utf-8").strip("\n")
-    except Exception as e:
-        raise_from(
-            RuntimeError(
-                "The version number cannot be extracted from git tag in this source "
-                "distribution; please either download the source from PyPI, or check out "
-                "from GitHub and make sure that the git CLI is available."
-            ),
-            e,
+    except Exception:
+        print(
+            "The version number cannot be extracted from git tag in this source "
+            "distribution; please either download the source from PyPI, or check out "
+            "from GitHub and make sure that the git CLI is available."
         )
+        raise
 
 
 def get_readme():
@@ -33,6 +31,6 @@ setup(
     url="https://github.com/uc-cdis/gen3users",
     license="Apache",
     packages=["gen3users"],
-    install_requires=["PyYAML~=5.1"],
+    install_requires=["PyYAML~=5.1", "click"],
     entry_points={"console_scripts": ["gen3users=gen3users.main:main"]},
 )
