@@ -27,7 +27,15 @@ PRIVILEGE_TO_ROLE_NAME = {
 }
 
 
-BASIC_POLICIES = {
+BASIC_ROLES = {
+    frozenset(["create"]): PRIVILEGE_TO_ROLE_NAME["create"],
+    frozenset(["read"]): PRIVILEGE_TO_ROLE_NAME["read"],
+    frozenset(["update"]): PRIVILEGE_TO_ROLE_NAME["update"],
+    frozenset(["delete"]): PRIVILEGE_TO_ROLE_NAME["delete"],
+    frozenset(["upload"]): PRIVILEGE_TO_ROLE_NAME["upload"],
+    frozenset(["read-storage"]): PRIVILEGE_TO_ROLE_NAME["read-storage"],
+    frozenset(["write-storage"]): PRIVILEGE_TO_ROLE_NAME["write-storage"],
+    frozenset(["read", "read-storage"]): "viewer",
     frozenset(["create", "read", "update", "delete", "read-storage"]): "admin",
     frozenset(["create", "read", "update", "delete"]): "service-admin",
     frozenset(
@@ -47,15 +55,23 @@ BASIC_POLICIES = {
     frozenset(
         ["create", "read", "update", "delete", "read-storage", "write-storage"]
     ): "write-storage-admin",
-    frozenset(["read", "read-storage"]): "viewer",
-    frozenset(["create"]): PRIVILEGE_TO_ROLE_NAME["create"],
-    frozenset(["read"]): PRIVILEGE_TO_ROLE_NAME["read"],
-    frozenset(["update"]): PRIVILEGE_TO_ROLE_NAME["update"],
-    frozenset(["delete"]): PRIVILEGE_TO_ROLE_NAME["delete"],
-    frozenset(["upload"]): PRIVILEGE_TO_ROLE_NAME["upload"],
-    frozenset(["read-storage"]): PRIVILEGE_TO_ROLE_NAME["read-storage"],
-    frozenset(["write-storage"]): PRIVILEGE_TO_ROLE_NAME["write-storage"],
 }
+
+
+def add_basic_roles(user_yaml_dict):
+    for permissions, name in BASIC_ROLES.items():
+        user_yaml_dict["rbac"]["roles"].append(
+            {
+                "id": name,
+                "permissions": [
+                    {
+                        "id": PRIVILEGE_TO_ROLE_NAME[p],
+                        "action": {"service": "*", "method": p},
+                    }
+                    for p in permissions
+                ],
+            }
+        )
 
 
 def auth_id_to_resource_path(user_yaml_dict, auth_id):
@@ -380,6 +396,9 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
         },
     }
 
+    # add basic roles to RBAC list of roles
+    add_basic_roles(new_user_yaml)
+
     # convert resources
     existing_resources = [
         item.get("name") for item in new_user_yaml["rbac"]["resources"]
@@ -395,45 +414,46 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
         elif resource["name"] not in existing_resources:
             print("Ignoring resource {}".format(resource["name"]))
 
-    # convert user privileges into policies
+    # convert user privileges into roles and policies
     existing_policies = [item.get("id") for item in new_user_yaml["rbac"]["policies"]]
     for user_email, user_access in old_user_yaml.get("users", {}).items():
 
         # generate user policies
         for project in user_access.get("projects", []):
-            privilege = frozenset(project.get("privilege", []))
 
-            try:
-                policy_suffixes = [BASIC_POLICIES[privilege]]
-            except KeyError:
-                # no grouped policy: create one policy for each privilege
-                policy_suffixes = [PRIVILEGE_TO_ROLE_NAME[p] for p in privilege]
-
-            for policy_suffix in policy_suffixes:
-                # if resource path is not specified, use auth_id
-                if "resource" not in project:
-                    resource_path = auth_id_to_resource_path(
-                        new_user_yaml, project["auth_id"]
-                    )
-                    if not resource_path:
-                        raise Exception(
-                            'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
-                                project["auth_id"], user_email
-                            )
-                        )
-                else:
-                    resource_path = project["resource"]
-                resource_path_parts = resource_path.split("/")
-                policy_id = "{}_{}".format(
-                    ".".join(resource_path_parts[1:]), policy_suffix
+            # get the resource path.
+            # if no resource path is specified, use the auth_id
+            if "resource" not in project:
+                resource_path = auth_id_to_resource_path(
+                    new_user_yaml, project["auth_id"]
                 )
+                if not resource_path:
+                    raise Exception(
+                        'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
+                            project["auth_id"], user_email
+                        )
+                    )
+            else:
+                resource_path = project["resource"]
+            resource_path_parts = resource_path.split("/")
+
+            # convert list of privileges into roles and policies
+            privilege = frozenset(project.get("privilege", []))
+            try:
+                role_names = [BASIC_ROLES[privilege]]
+            except KeyError:
+                # no existing basic role: create one role for each privilege
+                role_names = [PRIVILEGE_TO_ROLE_NAME[p] for p in privilege]
+
+            for role_name in role_names:
+                policy_id = "{}_{}".format(".".join(resource_path_parts[1:]), role_name)
 
                 if policy_id not in existing_policies:
-                    # add the policy to list of policies
+                    # add the new policy to RBAC list of policies
                     new_user_yaml["rbac"]["policies"].append(
                         {
                             "id": policy_id,
-                            "role_ids": [PRIVILEGE_TO_ROLE_NAME[p] for p in privilege],
+                            "role_ids": [role_name],
                             "resource_paths": [resource_path],
                         }
                     )
@@ -443,7 +463,8 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                 user_access["policies"].append(policy_id)
 
         # keep this commented out for now for backwards compatibility
-        # del user_access["projects"]
+        # if "projects" in user_access:
+        #     del user_access["projects"]
 
         new_user_yaml["users"][user_email] = user_access
 
