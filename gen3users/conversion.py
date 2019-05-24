@@ -59,6 +59,13 @@ BASIC_ROLES = {
 
 
 def add_basic_roles(user_yaml_dict):
+    """
+    Generates basic roles from BASIC_ROLES and add them to the user.yaml
+    role list.
+
+    Arguments:
+        user_yaml_dict {dict} -- Contents of a user.yaml file.
+    """
     for permissions, name in BASIC_ROLES.items():
         user_yaml_dict["rbac"]["roles"].append(
             {
@@ -218,80 +225,13 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                         }
                     ],
                 },
-                {
-                    "id": "admin",
-                    "description": "",
-                    "permissions": [
-                        {"id": "admin", "action": {"service": "*", "method": "*"}}
-                    ],
-                },
-                {
-                    "id": "creator",
-                    "description": "",
-                    "permissions": [
-                        {
-                            "id": "creator",
-                            "action": {"service": "*", "method": "create"},
-                        }
-                    ],
-                },
-                {
-                    "id": "reader",
-                    "description": "",
-                    "permissions": [
-                        {"id": "reader", "action": {"service": "*", "method": "read"}}
-                    ],
-                },
-                {
-                    "id": "updater",
-                    "description": "",
-                    "permissions": [
-                        {
-                            "id": "updater",
-                            "action": {"service": "*", "method": "update"},
-                        }
-                    ],
-                },
-                {
-                    "id": "deleter",
-                    "description": "",
-                    "permissions": [
-                        {
-                            "id": "deleter",
-                            "action": {"service": "*", "method": "delete"},
-                        }
-                    ],
-                },
-                {
-                    "id": "uploader",
-                    "description": "",
-                    "permissions": [
-                        {
-                            "id": "uploader",
-                            "action": {"service": "*", "method": "upload"},
-                        }
-                    ],
-                },
-                {
-                    "id": "storage_writer",
-                    "description": "",
-                    "permissions": [
-                        {
-                            "id": "storage_creator",
-                            "action": {"service": "*", "method": "write_storage"},
-                        }
-                    ],
-                },
-                {
-                    "id": "storage_reader",
-                    "description": "",
-                    "permissions": [
-                        {
-                            "id": "storage_reader",
-                            "action": {"service": "*", "method": "read_storage"},
-                        }
-                    ],
-                },
+                # {
+                #     "id": "admin",
+                #     "description": "",
+                #     "permissions": [
+                #         {"id": "admin", "action": {"service": "*", "method": "*"}}
+                #     ],
+                # },
                 # {
                 #     "id": "indexd_record_creator",
                 #     "description": "",

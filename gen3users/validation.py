@@ -167,6 +167,18 @@ def validate_syntax(user_yaml_dict):
     assert len(duplicate_policy_ids) == 0, "Duplicate policy ids: {}".format(
         duplicate_policy_ids
     )
+    # - in rbac.roles.id
+    existing_roles = get_field_from_list(
+        user_yaml_dict["rbac"].get("roles", []), "id"
+    )
+    duplicate_role_ids = [
+        role_id
+        for role_id, count in collections.Counter(existing_roles).items()
+        if count > 1
+    ]
+    assert len(duplicate_role_ids) == 0, "Duplicate role ids: {}".format(
+        duplicate_role_ids
+    )
 
 
 def validate_groups(user_yaml_dict):
