@@ -1,6 +1,7 @@
 import click
 
 from .validation import validate_user_yaml
+from .conversion import convert_old_user_yaml_to_new_user_yaml
 
 
 @click.group()
@@ -25,6 +26,17 @@ def validate(files):
         print("")
     if failed_validation:
         raise Exception("user.yaml validation failed. See errors in previous logs.")
+
+
+@main.command()
+@click.argument("file", type=str, nargs=1, required=True)
+@click.argument("destination", type=str, nargs=1, required=False)
+def convert(file, destination):
+    """Convert a user.yaml FILE to the new format. If a DESTINATION is provided, saves the result as a file. Otherwise, print the result."""
+
+    with open(file, "r") as f:
+        user_yaml = f.read()
+        convert_old_user_yaml_to_new_user_yaml(user_yaml, destination)
 
 
 if __name__ == "__main__":

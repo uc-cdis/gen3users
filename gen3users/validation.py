@@ -84,7 +84,12 @@ def validate_resource_syntax_recursive(resource):
         assert (
             "subresources" in resource
         ), 'Resource "{}" does not have subresources'.format(resource["name"])
-    for subresource in resource.get("subresources", []):
+
+    subresources = resource.get("subresources", [])
+    assert (
+        type(subresources) == list
+    ), 'Subresources for resource "{}" should be a list'.format(resource["name"])
+    for subresource in subresources:
         validate_resource_syntax_recursive(subresource)
 
 
@@ -227,7 +232,7 @@ def validate_policies(user_yaml_dict):
             )
             assert (
                 resource_path in existing_resources
-            ), 'Resource "{}" in policy "{}" is not defined in resources tree'.format(
+            ), 'Resource "{}" in policy "{}" is not defined in resource tree'.format(
                 resource_path, policy["id"]
             )
 
@@ -276,6 +281,19 @@ def validate_users(user_yaml_dict):
 
                 assert (
                     project["resource"] in existing_resources
-                ), 'Resource "{}" in project "{}" for user "{}" is not defined in resources tree'.format(
+                ), 'Resource "{}" in project "{}" for user "{}" is not defined in resource tree'.format(
                     project["resource"], project["auth_id"], user_email
                 )
+
+            # if no resource path is provided, make sure "auth_id" exists
+            # XXX: disabled for now because some commons do not have
+            # the "rbac" section yet
+            # else:
+            #     resource_path = auth_id_to_resource_path(
+            #         user_yaml_dict, project["auth_id"]
+            #     )
+            #     assert (
+            #         resource_path
+            #     ), 'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
+            #         project["auth_id"], user_email
+            #     )
