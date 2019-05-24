@@ -168,9 +168,7 @@ def validate_syntax(user_yaml_dict):
         duplicate_policy_ids
     )
     # - in rbac.roles.id
-    existing_roles = get_field_from_list(
-        user_yaml_dict["rbac"].get("roles", []), "id"
-    )
+    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
     duplicate_role_ids = [
         role_id
         for role_id, count in collections.Counter(existing_roles).items()
