@@ -21,7 +21,7 @@ PRIVILEGE_TO_ROLE_NAME = {
     "read": "reader",
     "update": "updater",
     "delete": "deleter",
-    # "upload": "uploader",
+    "upload": "uploader",
     "read-storage": "storage_reader",
     "write-storage": "storage_writer",
 }
@@ -36,19 +36,25 @@ BASIC_POLICIES = {
             "read",
             "update",
             "delete",
-            # "upload",
+            "upload",
             "read-storage",
             "write-storage",
         ]
     ): "storage-admin",
+    frozenset(
+        ["create", "read", "update", "delete", "upload", "read-storage"]
+    ): "upload-storage-admin",
+    frozenset(
+        ["create", "read", "update", "delete", "read-storage", "write-storage"]
+    ): "write-storage-admin",
     frozenset(["read", "read-storage"]): "viewer",
     frozenset(["create"]): PRIVILEGE_TO_ROLE_NAME["create"],
     frozenset(["read"]): PRIVILEGE_TO_ROLE_NAME["read"],
     frozenset(["update"]): PRIVILEGE_TO_ROLE_NAME["update"],
     frozenset(["delete"]): PRIVILEGE_TO_ROLE_NAME["delete"],
+    frozenset(["upload"]): PRIVILEGE_TO_ROLE_NAME["upload"],
     frozenset(["read-storage"]): PRIVILEGE_TO_ROLE_NAME["read-storage"],
     frozenset(["write-storage"]): PRIVILEGE_TO_ROLE_NAME["write-storage"],
-    # frozenset(["upload"]): PRIVILEGE_TO_ROLE_NAME["upload"],
 }
 
 
@@ -240,16 +246,16 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                         }
                     ],
                 },
-                # {
-                #     "id": "uploader",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "uploader",
-                #             "action": {"service": "*", "method": "upload"},
-                #         }
-                #     ],
-                # },
+                {
+                    "id": "uploader",
+                    "description": "",
+                    "permissions": [
+                        {
+                            "id": "uploader",
+                            "action": {"service": "*", "method": "upload"},
+                        }
+                    ],
+                },
                 {
                     "id": "storage_writer",
                     "description": "",
@@ -395,12 +401,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
 
         # generate user policies
         for project in user_access.get("projects", []):
-            # XXX: upload == write-storage? who knows
-            privilege_list = [
-                "write-storage" if p == "upload" else p
-                for p in project.get("privilege", [])
-            ]
-            privilege = frozenset(privilege_list)
+            privilege = frozenset(project.get("privilege", []))
 
             try:
                 policy_suffixes = [BASIC_POLICIES[privilege]]
