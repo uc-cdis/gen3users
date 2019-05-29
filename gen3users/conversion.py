@@ -63,8 +63,8 @@ def add_basic_roles(user_yaml_dict):
     Generates basic roles from BASIC_ROLES and add them to the user.yaml
     role list.
 
-    Arguments:
-        user_yaml_dict {dict} -- Contents of a user.yaml file.
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
     """
     for permissions, name in BASIC_ROLES.items():
         user_yaml_dict["rbac"]["roles"].append(
@@ -86,12 +86,12 @@ def auth_id_to_resource_path(user_yaml_dict, auth_id):
     Recursively searches the resource tree for a program or project
     named auth_id.
 
-    Arguments:
-        user_yaml_dict {dict} -- Contents of a user.yaml file.
-        auth_id {str} -- Program or project name as defined in user access
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+        auth_id (str): Program or project name as defined in user access.
 
     Returns:
-        [str] -- resource path for this auth_id if it exist, None otherwise
+        str: resource path for this auth_id if it exist, None otherwise.
     """
     for resource in user_yaml_dict["rbac"].get("resources", []):
         res = auth_id_to_resource_path_recursive("", resource, auth_id)
@@ -104,13 +104,13 @@ def auth_id_to_resource_path_recursive(root, resource, auth_id):
     Recursively searches the resource tree for a program or project
     named auth_id.
 
-    Arguments:
-        root {str} -- current resource path
-        resource {dict} -- current resource.
-        auth_id {str} -- Program or project name as defined in user access
+    Args:
+        root (str): current resource path.
+        resource (dict): current resource.
+        auth_id (str): Program or project name as defined in user access.
 
     Returns:
-        [str] -- resource path for this auth_id if it exist, None otherwise
+        str: resource path for this auth_id if it exist, None otherwise.
     """
     new_root = "{}/{}".format(root, resource["name"])
     if resource["name"] in ["programs", "projects"]:
@@ -128,14 +128,12 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
     Converts a user.yaml file to the new format required by the
     latest fence and arborist.
 
-    Arguments:
-        user_yaml {str} -- Contents of a user.yaml file.
-
-    Keyword Arguments:
-        dest_path {str} -- Optional destination file. (default: {None})
+    Args:
+        user_yaml (str): Contents of a user.yaml file.
+        dest_path (str, optional): Destination file. Defaults to None.
 
     Returns:
-        [str] -- Contents of the new user.yaml file.
+        str: Contents of the new user.yaml file.
     """
     # make sure the syntax is valid and expected fields exist
     print("Pre-conversion validation:")
