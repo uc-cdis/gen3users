@@ -366,11 +366,12 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                     new_user_yaml, project["auth_id"]
                 )
                 if not resource_path:
-                    raise Exception(
-                        'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
+                    print(
+                        'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided: skipping'.format(
                             project["auth_id"], user_email
                         )
                     )
+                    break
             else:
                 resource_path = project["resource"]
             resource_path_parts = resource_path.split("/")

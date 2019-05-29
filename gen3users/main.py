@@ -21,7 +21,7 @@ def validate(files):
                 user_yaml = f.read()
                 validate_user_yaml(user_yaml, file_name)
         except Exception as e:
-            print(e)
+            print("{}: {}".format(type(e).__name__, e))
             failed_validation = True
         print("")
     if failed_validation:
