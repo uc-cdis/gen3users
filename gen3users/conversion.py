@@ -1,8 +1,12 @@
+from cdislogging import get_logger
 import json
 import os
 import yaml
 
 from .validation import validate_user_yaml
+
+
+logger = get_logger("gen3users", None, "info")
 
 
 # turn off array references in the resulting YAML file
@@ -145,10 +149,10 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
         str: Contents of the new user.yaml file.
     """
     # make sure the syntax is valid and expected fields exist
-    print("Pre-conversion validation:")
+    logger.info("Pre-conversion validation:")
     validate_user_yaml(user_yaml)
 
-    print("Converting...")
+    logger.info("Converting...")
     old_user_yaml = yaml.safe_load(user_yaml)
     new_user_yaml = {
         "cloud_providers": old_user_yaml.get("cloud_providers", {}),
@@ -173,7 +177,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                 {"name": "gen3", "subresources": [resource]}
             )
         elif resource["name"] not in existing_resources:
-            print("Ignoring resource {}".format(resource["name"]))
+            logger.warning("Ignoring resource {}".format(resource["name"]))
 
     # convert user privileges into roles and policies
     existing_policies = [item.get("id") for item in new_user_yaml["rbac"]["policies"]]
@@ -189,7 +193,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                     new_user_yaml, project["auth_id"]
                 )
                 if not resource_path:
-                    print(
+                    logger.warning(
                         'WARNING: auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided: skipping'.format(
                             project["auth_id"], user_email
                         )
@@ -233,13 +237,13 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
     result = yaml.dump(new_user_yaml)
 
     # make sure the syntax is valid and expected fields exist
-    print("Post-conversion validation:")
+    logger.info("Post-conversion validation:")
     validate_user_yaml(result)
 
     # output result
     if dest_path:
         with open(dest_path, "w") as f:
-            print("Saving at {}".format(dest_path))
+            logger.info("Saving at {}".format(dest_path))
             yaml.dump(new_user_yaml, f, default_flow_style=False)
     else:
         print(result)

@@ -1,5 +1,9 @@
+from cdislogging import get_logger
 import collections
 import yaml
+
+
+logger = get_logger("gen3users")
 
 
 def assert_and_log(assertion_success, error_message):
@@ -15,7 +19,7 @@ def assert_and_log(assertion_success, error_message):
         assertion_success(bool): result of the assertion.
     """
     if not assertion_success:
-        print("Error: {}".format(error_message))
+        logger.error(error_message)
     return assertion_success
 
 
@@ -27,12 +31,12 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
         user_yaml (str): Contents of a user.yaml file.
         name (str): Displayable name of the tested file.
     """
-    print("Validating {}".format(name))
+    logger.info("Validating {}".format(name))
     try:
         user_yaml_dict = yaml.safe_load(user_yaml)
         assert user_yaml_dict, "Empty file"
     except:
-        print("Unable to parse YAML file")
+        logger.error("Unable to parse YAML file")
         raise
 
     ok = validate_syntax(user_yaml_dict)
@@ -43,7 +47,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     if not ok:
         raise Exception("user.yaml validation failed. See errors in previous logs.")
     else:
-        print("OK")
+        logger.info("OK")
 
 
 def get_field_from_list(li, field):
@@ -144,7 +148,7 @@ def validate_syntax(user_yaml_dict):
     Return:
         ok(bool): whether the validation succeeded.
     """
-    print("- Validating user.yaml syntax")
+    logger.info("- Validating user.yaml syntax")
     ok = True
 
     # check expected sections are defined
@@ -282,7 +286,7 @@ def validate_groups(user_yaml_dict):
     Return:
         ok(bool): whether the validation succeeded.
     """
-    print("- Validating groups")
+    logger.info("- Validating groups")
     ok = True
 
     existing_policies = get_field_from_list(
@@ -340,7 +344,7 @@ def validate_policies(user_yaml_dict):
     Return:
         ok(bool): whether the validation succeeded.
     """
-    print("- Validating policies")
+    logger.info("- Validating policies")
     ok = True
 
     existing_resources = resource_tree_to_paths(user_yaml_dict)
@@ -395,7 +399,7 @@ def validate_users(user_yaml_dict):
     Return:
         ok(bool): whether the validation succeeded.
     """
-    print("- Validating users")
+    logger.info("- Validating users")
     ok = True
 
     existing_policies = get_field_from_list(
