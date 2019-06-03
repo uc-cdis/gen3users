@@ -2,5 +2,4 @@ include LICENSE
 include NOTICE
 include Pipfile
 include Pipfile.lock
-recursive-include *.py
-recursive-include *.json
+recursive-include gen3users *.py *.json
