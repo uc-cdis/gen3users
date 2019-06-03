@@ -1,3 +1,5 @@
+import json
+import os
 import yaml
 
 from .validation import validate_user_yaml
@@ -14,6 +16,13 @@ yaml.add_representer(
         self, data.items()
     ),
 )
+
+
+# "base_rbac.json" contains RBAC elements that are included in all
+# user.yaml files
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(CURRENT_DIR, "base_rbac.json")) as f:
+    BASE_RBAC = json.load(f)
 
 
 PRIVILEGE_TO_ROLE_NAME = {
@@ -145,193 +154,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
         "cloud_providers": old_user_yaml.get("cloud_providers", {}),
         "groups": old_user_yaml.get("groups", {}),
         "users": {},
-        "rbac": {
-            "groups": [],
-            "anonymous_policies": ["open_reader"],
-            "all_users_policies": ["open_reader"],
-            "policies": [
-                {
-                    "id": "data_upload",
-                    "description": "upload raw data files to S3 (for new data upload flow)",
-                    "resource_paths": ["/data_file"],
-                    "role_ids": ["file_uploader"],
-                },
-                {
-                    "id": "workspace",
-                    "description": "be able to use workspace",
-                    "resource_paths": ["/workspace"],
-                    "role_ids": ["workspace_user"],
-                },
-                {
-                    "id": "prometheus",
-                    "description": "be able to use prometheus",
-                    "resource_paths": ["/prometheus"],
-                    "role_ids": ["prometheus_user"],
-                },
-                {
-                    "id": "open_reader",
-                    "description": "",
-                    "role_ids": ["reader", "storage_reader"],
-                    "resource_paths": ["/open"],
-                },
-                {
-                    "id": "open_admin",
-                    "description": "",
-                    "role_ids": [
-                        "creator",
-                        "reader",
-                        "updater",
-                        "deleter",
-                        "storage_writer",
-                        "storage_reader",
-                    ],
-                    "resource_paths": ["/open"],
-                },
-            ],
-            "resources": [
-                {"name": "data_file", "description": "data files, stored in S3"},
-                {"name": "workspace"},
-                {"name": "prometheus"},
-                {"name": "open"},
-            ],
-            "roles": [
-                {
-                    "id": "file_uploader",
-                    "description": "can upload data files",
-                    "permissions": [
-                        {
-                            "action": {"method": "file_upload", "service": "fence"},
-                            "id": "file_upload",
-                        }
-                    ],
-                },
-                {
-                    "id": "workspace_user",
-                    "permissions": [
-                        {
-                            "action": {"method": "access", "service": "jupyterhub"},
-                            "id": "workspace_access",
-                        }
-                    ],
-                },
-                {
-                    "id": "prometheus_user",
-                    "permissions": [
-                        {
-                            "action": {"method": "access", "service": "prometheus"},
-                            "id": "prometheus_access",
-                        }
-                    ],
-                },
-                # {
-                #     "id": "admin",
-                #     "description": "",
-                #     "permissions": [
-                #         {"id": "admin", "action": {"service": "*", "method": "*"}}
-                #     ],
-                # },
-                # {
-                #     "id": "indexd_record_creator",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "indexd_record_creator",
-                #             "action": {"service": "indexd", "method": "create"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "indexd_record_reader",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "indexd_record_reader",
-                #             "action": {"service": "indexd", "method": "read"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "indexd_record_updater",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "indexd_record_updater",
-                #             "action": {"service": "indexd", "method": "update"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "indexd_delete_record",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "indexd_delete_record",
-                #             "action": {"service": "indexd", "method": "delete"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "indexd_storage_reader",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "indexd_storage_reader",
-                #             "action": {"service": "indexd", "method": "read_storage"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "indexd_storage_writer",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "indexd_storage_writer",
-                #             "action": {"service": "indexd", "method": "write_storage"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "arborist_creator",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "arborist_creator",
-                #             "action": {"service": "arborist", "method": "create"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "arborist_reader",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "arborist_reader",
-                #             "action": {"service": "arborist", "method": "read"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "arborist_updater",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "arborist_updater",
-                #             "action": {"service": "arborist", "method": "update"},
-                #         }
-                #     ],
-                # },
-                # {
-                #     "id": "arborist_deleter",
-                #     "description": "",
-                #     "permissions": [
-                #         {
-                #             "id": "arborist_deleter",
-                #             "action": {"service": "arborist", "method": "delete"},
-                #         }
-                #     ],
-                # },
-            ],
-        },
+        "rbac": BASE_RBAC,
     }
 
     # add basic roles to RBAC list of roles
@@ -367,7 +190,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                 )
                 if not resource_path:
                     print(
-                        'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided: skipping'.format(
+                        'WARNING: auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided: skipping'.format(
                             project["auth_id"], user_email
                         )
                     )
