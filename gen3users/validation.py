@@ -2,9 +2,6 @@ import collections
 import yaml
 
 
-failed_validation = False
-
-
 def assert_and_log(assertion_success, error_message):
     """
     If an assertion fails, logs the provided error message and updates
