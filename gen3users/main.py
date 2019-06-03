@@ -1,11 +1,13 @@
 from cdislogging import get_logger
 import click
+import logging
 
 from .validation import validate_user_yaml
 from .conversion import convert_old_user_yaml_to_new_user_yaml
 
 
 logger = get_logger("gen3users", None, "info")
+logging.basicConfig()
 
 
 @click.group()
@@ -28,7 +30,9 @@ def validate(files):
             logger.error("{}: {}".format(type(e).__name__, e))
             failed_validation = True
     if failed_validation:
-        raise Exception("user.yaml validation failed. See errors in previous logs.")
+        raise AssertionError(
+            "user.yaml validation failed. See errors in previous logs."
+        )
 
 
 @main.command()

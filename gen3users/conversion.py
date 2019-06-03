@@ -1,12 +1,14 @@
 from cdislogging import get_logger
 import json
+import logging
 import os
 import yaml
 
 from .validation import validate_user_yaml
 
 
-logger = get_logger("gen3users", None, "info")
+logger = get_logger("gen3users")
+logging.basicConfig()
 
 
 # turn off array references in the resulting YAML file
@@ -226,7 +228,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                     existing_policies.append(policy_id)
 
                 # assign the policy to the user
-                user_access["policies"].append(policy_id)
+                user_access.get("policies", []).append(policy_id)
 
         # keep this commented out for now for backwards compatibility
         # if "projects" in user_access:

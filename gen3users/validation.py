@@ -1,9 +1,11 @@
 from cdislogging import get_logger
 import collections
+import logging
 import yaml
 
 
 logger = get_logger("gen3users")
+logging.basicConfig()
 
 
 def assert_and_log(assertion_success, error_message):
@@ -45,7 +47,9 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     ok = validate_users(user_yaml_dict) and ok
 
     if not ok:
-        raise Exception("user.yaml validation failed. See errors in previous logs.")
+        raise AssertionError(
+            "user.yaml validation failed. See errors in previous logs."
+        )
     else:
         logger.info("OK")
 
