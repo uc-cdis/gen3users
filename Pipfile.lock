@@ -16,6 +16,12 @@
         ]
     },
     "default": {
+        "cdislogging": {
+            "hashes": [
+                "sha256:a1cc2e48d5fc26d4b354b80c6497f1f1136f3e3e4f1d1855de8980ccf497fa0a"
+            ],
+            "version": "==1.0.0"
+        },
         "click": {
             "hashes": [
                 "sha256:2335065e6395b9e67ca716de5f7526736bfa6ceead690adf616d925bdc622b13",

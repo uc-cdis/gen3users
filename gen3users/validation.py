@@ -1,5 +1,28 @@
+from cdislogging import get_logger
 import collections
+import logging
 import yaml
+
+
+logger = get_logger("gen3users")
+logging.basicConfig()
+
+
+def assert_and_log(assertion_success, error_message):
+    """
+    If an assertion fails, logs the provided error message and updates
+    the global variable "failed_validation" for future use.
+    
+    Args:
+        assertion_success (bool): result of an assertion.
+        error_message (str): message to display if the assertion failed.
+
+    Return:
+        assertion_success(bool): result of the assertion.
+    """
+    if not assertion_success:
+        logger.error(error_message)
+    return assertion_success
 
 
 def validate_user_yaml(user_yaml, name="user.yaml"):
@@ -10,18 +33,25 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
         user_yaml (str): Contents of a user.yaml file.
         name (str): Displayable name of the tested file.
     """
-    print("Validating {}".format(name))
+    logger.info("Validating {}".format(name))
     try:
         user_yaml_dict = yaml.safe_load(user_yaml)
         assert user_yaml_dict, "Empty file"
     except:
-        print("Unable to parse YAML file")
+        logger.error("Unable to parse YAML file")
         raise
-    validate_syntax(user_yaml_dict)
-    validate_groups(user_yaml_dict)
-    validate_policies(user_yaml_dict)
-    validate_users(user_yaml_dict)
-    print("OK")
+
+    ok = validate_syntax(user_yaml_dict)
+    ok = validate_groups(user_yaml_dict) and ok
+    ok = validate_policies(user_yaml_dict) and ok
+    ok = validate_users(user_yaml_dict) and ok
+
+    if not ok:
+        raise AssertionError(
+            "user.yaml validation failed. See errors in previous logs."
+        )
+    else:
+        logger.info("OK")
 
 
 def get_field_from_list(li, field):
@@ -78,14 +108,37 @@ def validate_resource_syntax_recursive(resource):
 
     Args:
         resource (dict): current resource.
+
+    Return:
+        ok(bool): whether the validation succeeded.
     """
-    assert "name" in resource, "Resource without name: {}".format(resource)
+    ok = True
+
+    ok = (
+        assert_and_log("name" in resource, "Resource without name: {}".format(resource))
+        and ok
+    )
     if resource["name"] == "programs" or resource["name"] == "projects":
-        assert (
-            "subresources" in resource
-        ), 'Resource "{}" does not have subresources'.format(resource["name"])
-    for subresource in resource.get("subresources", []):
+        ok = (
+            assert_and_log(
+                "subresources" in resource,
+                'Resource "{}" does not have subresources'.format(resource["name"]),
+            )
+            and ok
+        )
+
+    subresources = resource.get("subresources", [])
+    ok = (
+        assert_and_log(
+            type(subresources) == list,
+            'Subresources for resource "{}" should be a list'.format(resource["name"]),
+        )
+        and ok
+    )
+    for subresource in subresources:
         validate_resource_syntax_recursive(subresource)
+
+    return ok
 
 
 def validate_syntax(user_yaml_dict):
@@ -95,46 +148,83 @@ def validate_syntax(user_yaml_dict):
 
     Args:
         user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
     """
-    print("- Validating user.yaml syntax")
+    logger.info("- Validating user.yaml syntax")
+    ok = True
 
     # check expected sections are defined
-    # assert "rbac" in user_yaml_dict, 'Missing "rbac" section'
+    # assert_and_log("rbac" in user_yaml_dict, 'Missing "rbac" section')
     # TODO: after all user.yamls are migrated to new format, uncomment the assertion and remove these 2 lines (waiting on dcfstaging)
     if "rbac" not in user_yaml_dict:
         user_yaml_dict["rbac"] = {}
-    assert "users" in user_yaml_dict, 'Missing "users" section'
+    ok = assert_and_log("users" in user_yaml_dict, 'Missing "users" section') and ok
 
     # check expected fields are defined
     # - in rbac.groups
     for group in user_yaml_dict["rbac"].get("groups", []):
-        assert "name" in group, "Group without name: {}".format(group)
-        assert "policies" in group, 'Group "{}" does not have policies'.format(
-            group["name"]
+        ok = (
+            assert_and_log("name" in group, "Group without name: {}".format(group))
+            and ok
         )
-        assert "users" in group, 'Group "{}" does not have users'.format(group["name"])
+        ok = (
+            assert_and_log(
+                "policies" in group,
+                'Group "{}" does not have policies'.format(group["name"]),
+            )
+            and ok
+        )
+        ok = (
+            assert_and_log(
+                "users" in group, 'Group "{}" does not have users'.format(group["name"])
+            )
+            and ok
+        )
     # - in rbac.policies
     for policy in user_yaml_dict["rbac"].get("policies", []):
-        assert "id" in policy, "Policy without id: {}".format(policy)
-        assert "role_ids" in policy, 'Policy "{}" does not have role_ids'.format(
-            policy["id"]
+        ok = (
+            assert_and_log("id" in policy, "Policy without id: {}".format(policy))
+            and ok
         )
-        assert (
-            "resource_paths" in policy
-        ), 'Policy "{}" does not have resource_paths'.format(policy["id"])
+        ok = (
+            assert_and_log(
+                "role_ids" in policy,
+                'Policy "{}" does not have role_ids'.format(policy["id"]),
+            )
+            and ok
+        )
+        ok = (
+            assert_and_log(
+                "resource_paths" in policy,
+                'Policy "{}" does not have resource_paths'.format(policy["id"]),
+            )
+            and ok
+        )
     # - in rbac.resources
     for resource in user_yaml_dict["rbac"].get("resources", []):
-        validate_resource_syntax_recursive(resource)
+        ok = validate_resource_syntax_recursive(resource) and ok
     # - in users
     for user_email, user_access in user_yaml_dict["users"].items():
         for project in user_access.get("projects", {}):
-            assert (
-                "auth_id" in project
-            ), 'Project without auth_id for user "{}": {}'.format(user_email, project)
-            assert (
-                "privilege" in project
-            ), 'Project "{}" without privilege section for user "{}"'.format(
-                project["auth_id"], user_email
+            ok = (
+                assert_and_log(
+                    "auth_id" in project,
+                    'Project without auth_id for user "{}": {}'.format(
+                        user_email, project
+                    ),
+                )
+                and ok
+            )
+            ok = (
+                assert_and_log(
+                    "privilege" in project,
+                    'Project "{}" without privilege section for user "{}"'.format(
+                        project["auth_id"], user_email
+                    ),
+                )
+                and ok
             )
 
     # make sure there are no duplicates
@@ -147,8 +237,12 @@ def validate_syntax(user_yaml_dict):
         for group_name, count in collections.Counter(existing_groups).items()
         if count > 1
     ]
-    assert len(duplicate_group_names) == 0, "Duplicate group names: {}".format(
-        duplicate_group_names
+    ok = (
+        assert_and_log(
+            len(duplicate_group_names) == 0,
+            "Duplicate group names: {}".format(duplicate_group_names),
+        )
+        and ok
     )
     # - in rbac.policies.id
     existing_policies = get_field_from_list(
@@ -159,9 +253,29 @@ def validate_syntax(user_yaml_dict):
         for policy_id, count in collections.Counter(existing_policies).items()
         if count > 1
     ]
-    assert len(duplicate_policy_ids) == 0, "Duplicate policy ids: {}".format(
-        duplicate_policy_ids
+    ok = (
+        assert_and_log(
+            len(duplicate_policy_ids) == 0,
+            "Duplicate policy ids: {}".format(duplicate_policy_ids),
+        )
+        and ok
     )
+    # - in rbac.roles.id
+    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
+    duplicate_role_ids = [
+        role_id
+        for role_id, count in collections.Counter(existing_roles).items()
+        if count > 1
+    ]
+    ok = (
+        assert_and_log(
+            len(duplicate_role_ids) == 0,
+            "Duplicate role ids: {}".format(duplicate_role_ids),
+        )
+        and ok
+    )
+
+    return ok
 
 
 def validate_groups(user_yaml_dict):
@@ -172,35 +286,54 @@ def validate_groups(user_yaml_dict):
 
     Args:
         user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
     """
-    print("- Validating groups")
+    logger.info("- Validating groups")
+    ok = True
+
     existing_policies = get_field_from_list(
         user_yaml_dict["rbac"].get("policies", []), "id"
     )
     for group in user_yaml_dict["rbac"].get("groups", []):
         # check users are defined
         for user_email in group["users"]:
-            assert (
-                user_email in user_yaml_dict["users"]
-            ), 'User "{}" in group "{}" is not defined in main user list'.format(
-                user_email, group["name"]
+            ok = (
+                assert_and_log(
+                    user_email in user_yaml_dict["users"],
+                    'User "{}" in group "{}" is not defined in main user list'.format(
+                        user_email, group["name"]
+                    ),
+                )
+                and ok
             )
         # check policies are defined
         for policy_id in group["policies"]:
-            assert (
-                policy_id in existing_policies
-            ), 'Policy "{}" in group "{}" is not defined in list of policies'.format(
-                policy_id, group["name"]
+            ok = (
+                assert_and_log(
+                    policy_id in existing_policies,
+                    'Policy "{}" in group "{}" is not defined in list of policies'.format(
+                        policy_id, group["name"]
+                    ),
+                )
+                and ok
             )
 
     for predefined_group in ["anonymous_policies", "all_users_policies"]:
         # check policies are defined
         for policy_id in user_yaml_dict["rbac"].get(predefined_group, []):
-            assert (
-                policy_id in existing_policies
-            ), 'Policy "{}" in group "{}" is not defined in list of policies'.format(
-                policy_id, predefined_group
+            ok = (
+                assert_and_log(
+                    policy_id in existing_policies,
+                    'Policy "{}" in group "{}" is not defined in list of policies'.format(
+                        policy_id, predefined_group
+                    ),
+                )
+                and ok
             )
+
+    return ok
 
 
 def validate_policies(user_yaml_dict):
@@ -211,8 +344,13 @@ def validate_policies(user_yaml_dict):
 
     Args:
         user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
     """
-    print("- Validating policies")
+    logger.info("- Validating policies")
+    ok = True
+
     existing_resources = resource_tree_to_paths(user_yaml_dict)
     existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
     for policy in user_yaml_dict["rbac"].get("policies", []):
@@ -220,24 +358,38 @@ def validate_policies(user_yaml_dict):
         # check resource paths in "rbac.policies" are valid
         # given "rbac.resources" resource tree
         for resource_path in policy["resource_paths"]:
-            assert resource_path.startswith(
-                "/"
-            ), 'Resource path "{}" in policy "{}" should start with a "/"'.format(
-                resource_path, policy["id"]
+            ok = (
+                assert_and_log(
+                    resource_path.startswith("/"),
+                    'Resource path "{}" in policy "{}" should start with a "/"'.format(
+                        resource_path, policy["id"]
+                    ),
+                )
+                and ok
             )
-            assert (
-                resource_path in existing_resources
-            ), 'Resource "{}" in policy "{}" is not defined in resources tree'.format(
-                resource_path, policy["id"]
+            ok = (
+                assert_and_log(
+                    resource_path in existing_resources,
+                    'Resource "{}" in policy "{}" is not defined in resource tree'.format(
+                        resource_path, policy["id"]
+                    ),
+                )
+                and ok
             )
 
         # checks roles are defined
         for role_id in policy["role_ids"]:
-            assert (
-                role_id in existing_roles
-            ), 'Role "{}" in policy "{}" is not defined in list of roles'.format(
-                role_id, policy["id"]
+            ok = (
+                assert_and_log(
+                    role_id in existing_roles,
+                    'Role "{}" in policy "{}" is not defined in list of roles'.format(
+                        role_id, policy["id"]
+                    ),
+                )
+                and ok
             )
+
+    return ok
 
 
 def validate_users(user_yaml_dict):
@@ -247,8 +399,13 @@ def validate_users(user_yaml_dict):
 
     Args:
         user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
     """
-    print("- Validating users")
+    logger.info("- Validating users")
+    ok = True
+
     existing_policies = get_field_from_list(
         user_yaml_dict["rbac"].get("policies", []), "id"
     )
@@ -258,24 +415,55 @@ def validate_users(user_yaml_dict):
         # check policies are defined
         user_policies = user_access.get("policies", [])
         invalid_policies = set(user_policies).difference(existing_policies)
-        assert (
-            len(invalid_policies) == 0
-        ), 'Policies {} for user "{}" are not defined in list of policies'.format(
-            invalid_policies, user_email
+        ok = (
+            assert_and_log(
+                len(invalid_policies) == 0,
+                'Policies {} for user "{}" are not defined in list of policies'.format(
+                    invalid_policies, user_email
+                ),
+            )
+            and ok
         )
 
         # check resource paths in "users.projects.resource" are valid
         # given "rbac.resources" resource tree
         for project in user_access.get("projects", {}):
             if "resource" in project:
-                assert project["resource"].startswith(
-                    "/"
-                ), 'Resource path "{}" in project "{}" for user "{}" should start with a "/"'.format(
-                    project["resource"], project["auth_id"], user_email
+                ok = (
+                    assert_and_log(
+                        project["resource"].startswith("/"),
+                        'Resource path "{}" in project "{}" for user "{}" should start with a "/"'.format(
+                            project["resource"], project["auth_id"], user_email
+                        ),
+                    )
+                    and ok
                 )
 
-                assert (
-                    project["resource"] in existing_resources
-                ), 'Resource "{}" in project "{}" for user "{}" is not defined in resources tree'.format(
-                    project["resource"], project["auth_id"], user_email
+                ok = (
+                    assert_and_log(
+                        project["resource"] in existing_resources,
+                        'Resource "{}" in project "{}" for user "{}" is not defined in resource tree'.format(
+                            project["resource"], project["auth_id"], user_email
+                        ),
+                    )
+                    and ok
                 )
+
+            # if no resource path is provided, make sure "auth_id" exists
+            # XXX: disabled for now because some commons do not have
+            # the "rbac" section yet
+            # else:
+            #     resource_path = auth_id_to_resource_path(
+            #         user_yaml_dict, project["auth_id"]
+            #     )
+            #     ok = (
+            #         assert_and_log(
+            #             resource_path,
+            #             'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
+            #                 project["auth_id"], user_email
+            #             ),
+            #         )
+            #         and ok
+            #     )
+
+    return ok
