@@ -44,6 +44,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     ok = validate_syntax(user_yaml_dict)
     ok = validate_groups(user_yaml_dict) and ok
     ok = validate_policies(user_yaml_dict) and ok
+    ok = validate_clients(user_yaml_dict) and ok
     ok = validate_users(user_yaml_dict) and ok
 
     if not ok:
@@ -384,6 +385,38 @@ def validate_policies(user_yaml_dict):
                     role_id in existing_roles,
                     'Role "{}" in policy "{}" is not defined in list of roles'.format(
                         role_id, policy["id"]
+                    ),
+                )
+                and ok
+            )
+
+    return ok
+
+
+def validate_clients(user_yaml_dict):
+    """
+    Validates the "clients" section of the user.yaml by checking that the policies assigned to the client are defined in the lists of policies.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
+    """
+    logger.info("- Validating clients")
+    ok = True
+
+    existing_policies = get_field_from_list(
+        user_yaml_dict["rbac"].get("policies", []), "id"
+    )
+    for client_name, client_details in user_yaml_dict.get("clients", {}).items():
+        # check policies are defined
+        for policy_id in client_details["policies"]:
+            ok = (
+                assert_and_log(
+                    policy_id in existing_policies,
+                    'Policy "{}" for client "{}" is not defined in list of policies'.format(
+                        policy_id, client_name
                     ),
                 )
                 and ok
