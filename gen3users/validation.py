@@ -118,15 +118,6 @@ def validate_resource_syntax_recursive(resource):
         assert_and_log("name" in resource, "Resource without name: {}".format(resource))
         and ok
     )
-    if resource["name"] == "programs" or resource["name"] == "projects":
-        ok = (
-            assert_and_log(
-                "subresources" in resource,
-                'Resource "{}" does not have subresources'.format(resource["name"]),
-            )
-            and ok
-        )
-
     subresources = resource.get("subresources", [])
     ok = (
         assert_and_log(
