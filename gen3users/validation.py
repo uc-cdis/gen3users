@@ -96,8 +96,7 @@ def resource_tree_to_paths_recursive(root, paths_list, resource):
         resource (dict): current resource.
     """
     new_root = "{}/{}".format(root, resource["name"])
-    if resource["name"] not in ["programs", "projects"]:
-        paths_list.append(new_root)
+    paths_list.append(new_root)
     for sub in resource.get("subresources", []):
         resource_tree_to_paths_recursive(new_root, paths_list, sub)
 
