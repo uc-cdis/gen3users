@@ -24,11 +24,11 @@ yaml.add_representer(
 )
 
 
-# "base_rbac.json" contains RBAC elements that are included in all
+# "base_abac.json" contains ABAC elements that are included in all
 # user.yaml files
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(CURRENT_DIR, "base_rbac.json")) as f:
-    BASE_RBAC = json.load(f)
+with open(os.path.join(CURRENT_DIR, "base_abac.json")) as f:
+    BASE_ABAC = json.load(f)
 
 
 PRIVILEGE_TO_ROLE_NAME = {
@@ -82,7 +82,7 @@ def add_basic_roles(user_yaml_dict):
         user_yaml_dict (dict): Contents of a user.yaml file.
     """
     for permissions, name in BASIC_ROLES.items():
-        user_yaml_dict["rbac"]["roles"].append(
+        user_yaml_dict["authz"]["roles"].append(
             {
                 "id": name,
                 "permissions": [
@@ -108,7 +108,7 @@ def auth_id_to_resource_path(user_yaml_dict, auth_id):
     Returns:
         str: resource path for this auth_id if it exist, None otherwise.
     """
-    for resource in user_yaml_dict["rbac"].get("resources", []):
+    for resource in user_yaml_dict["authz"].get("resources", []):
         res = auth_id_to_resource_path_recursive("", resource, auth_id)
         if res:
             return res
@@ -160,29 +160,33 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
         "cloud_providers": old_user_yaml.get("cloud_providers", {}),
         "groups": old_user_yaml.get("groups", {}),
         "users": {},
-        "rbac": BASE_RBAC,
+        "authz": BASE_ABAC,
     }
 
-    # add basic roles to RBAC list of roles
+    # add basic roles to ABAC list of roles
     add_basic_roles(new_user_yaml)
 
     # convert resources
     existing_resources = [
-        item.get("name") for item in new_user_yaml["rbac"]["resources"]
+        item.get("name") for item in new_user_yaml["authz"]["resources"]
     ]
-    old_resources = old_user_yaml.get("rbac", {}).get("resources", [])
+    if "authz" in old_user_yaml:
+        old_resources = old_user_yaml.get("authz", {}).get("resources", [])
+    else:
+        # Remove when rbac field in useryaml properly deprecated
+        old_resources = old_user_yaml.get("rbac", {}).get("resources", [])
     for resource in old_resources:
         if resource["name"] == "programs":
             # duplicate programs for backwards compatibility
-            new_user_yaml["rbac"]["resources"].append(resource)
-            new_user_yaml["rbac"]["resources"].append(
+            new_user_yaml["authz"]["resources"].append(resource)
+            new_user_yaml["authz"]["resources"].append(
                 {"name": "gen3", "subresources": [resource]}
             )
         elif resource["name"] not in existing_resources:
             logger.warning("Ignoring resource {}".format(resource["name"]))
 
     # convert user privileges into roles and policies
-    existing_policies = [item.get("id") for item in new_user_yaml["rbac"]["policies"]]
+    existing_policies = [item.get("id") for item in new_user_yaml["authz"]["policies"]]
     for user_email, user_access in old_user_yaml.get("users", {}).items():
 
         # generate user policies
@@ -217,8 +221,8 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
                 policy_id = "{}_{}".format(".".join(resource_path_parts[1:]), role_name)
 
                 if policy_id not in existing_policies:
-                    # add the new policy to RBAC list of policies
-                    new_user_yaml["rbac"]["policies"].append(
+                    # add the new policy to ABAC list of policies
+                    new_user_yaml["authz"]["policies"].append(
                         {
                             "id": policy_id,
                             "role_ids": [role_name],

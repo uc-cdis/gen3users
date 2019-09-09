@@ -71,7 +71,7 @@ def get_field_from_list(li, field):
 
 def resource_tree_to_paths(user_yaml_dict):
     """
-    Builds the list of existing resource paths from the rbac.resources
+    Builds the list of existing resource paths from the authz.resources
     section of the user.yaml.
 
     Args:
@@ -81,7 +81,11 @@ def resource_tree_to_paths(user_yaml_dict):
         paths_list(list[str]): list of existing resource paths.
     """
     paths_list = []
-    for resource in user_yaml_dict["rbac"].get("resources", []):
+
+    # TODO: once rbac field fully deprecated just replace authz_or_rbac with "authz" everywhere
+    authz_or_rbac = "authz" if "authz" in user_yaml_dict else "rbac"
+
+    for resource in user_yaml_dict[authz_or_rbac].get("resources", []):
         resource_tree_to_paths_recursive("", paths_list, resource)
     return paths_list
 
@@ -147,15 +151,19 @@ def validate_syntax(user_yaml_dict):
     ok = True
 
     # check expected sections are defined
-    # assert_and_log("rbac" in user_yaml_dict, 'Missing "rbac" section')
+    # assert_and_log("authz" in user_yaml_dict, 'Missing "authz" section')
     # TODO: after all user.yamls are migrated to new format, uncomment the assertion and remove these 2 lines (waiting on dcfstaging)
-    if "rbac" not in user_yaml_dict:
-        user_yaml_dict["rbac"] = {}
+    # Remove "rbac" check once rbac field fully deprecated
+    if "authz" not in user_yaml_dict and "rbac" not in user_yaml_dict:
+        user_yaml_dict["authz"] = {}
     ok = assert_and_log("users" in user_yaml_dict, 'Missing "users" section') and ok
 
+    # TODO: once rbac field fully deprecated just replace authz_or_rbac with "authz" everywhere
+    authz_or_rbac = "authz" if "authz" in user_yaml_dict else "rbac"
+
     # check expected fields are defined
-    # - in rbac.groups
-    for group in user_yaml_dict["rbac"].get("groups", []):
+    # - in authz.groups
+    for group in user_yaml_dict[authz_or_rbac].get("groups", []):
         ok = (
             assert_and_log("name" in group, "Group without name: {}".format(group))
             and ok
@@ -173,8 +181,8 @@ def validate_syntax(user_yaml_dict):
             )
             and ok
         )
-    # - in rbac.policies
-    for policy in user_yaml_dict["rbac"].get("policies", []):
+    # - in authz.policies
+    for policy in user_yaml_dict[authz_or_rbac].get("policies", []):
         ok = (
             assert_and_log("id" in policy, "Policy without id: {}".format(policy))
             and ok
@@ -193,8 +201,8 @@ def validate_syntax(user_yaml_dict):
             )
             and ok
         )
-    # - in rbac.resources
-    for resource in user_yaml_dict["rbac"].get("resources", []):
+    # - in authz.resources
+    for resource in user_yaml_dict[authz_or_rbac].get("resources", []):
         ok = validate_resource_syntax_recursive(resource) and ok
     # - in users
     for user_email, user_access in user_yaml_dict["users"].items():
@@ -219,9 +227,9 @@ def validate_syntax(user_yaml_dict):
             )
 
     # make sure there are no duplicates
-    # - in rbac.groups.name
+    # - in authz.groups.name
     existing_groups = get_field_from_list(
-        user_yaml_dict["rbac"].get("groups", []), "name"
+        user_yaml_dict[authz_or_rbac].get("groups", []), "name"
     )
     duplicate_group_names = [
         group_name
@@ -235,9 +243,9 @@ def validate_syntax(user_yaml_dict):
         )
         and ok
     )
-    # - in rbac.policies.id
+    # - in authz.policies.id
     existing_policies = get_field_from_list(
-        user_yaml_dict["rbac"].get("policies", []), "id"
+        user_yaml_dict[authz_or_rbac].get("policies", []), "id"
     )
     duplicate_policy_ids = [
         policy_id
@@ -251,8 +259,10 @@ def validate_syntax(user_yaml_dict):
         )
         and ok
     )
-    # - in rbac.roles.id
-    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
+    # - in authz.roles.id
+    existing_roles = get_field_from_list(
+        user_yaml_dict[authz_or_rbac].get("roles", []), "id"
+    )
     duplicate_role_ids = [
         role_id
         for role_id, count in collections.Counter(existing_roles).items()
@@ -284,10 +294,13 @@ def validate_groups(user_yaml_dict):
     logger.info("- Validating groups")
     ok = True
 
+    # TODO: once rbac field fully deprecated just replace authz_or_rbac with "authz" everywhere
+    authz_or_rbac = "authz" if "authz" in user_yaml_dict else "rbac"
+
     existing_policies = get_field_from_list(
-        user_yaml_dict["rbac"].get("policies", []), "id"
+        user_yaml_dict[authz_or_rbac].get("policies", []), "id"
     )
-    for group in user_yaml_dict["rbac"].get("groups", []):
+    for group in user_yaml_dict[authz_or_rbac].get("groups", []):
         # check users are defined
         for user_email in group["users"]:
             ok = (
@@ -313,7 +326,7 @@ def validate_groups(user_yaml_dict):
 
     for predefined_group in ["anonymous_policies", "all_users_policies"]:
         # check policies are defined
-        for policy_id in user_yaml_dict["rbac"].get(predefined_group, []):
+        for policy_id in user_yaml_dict[authz_or_rbac].get(predefined_group, []):
             ok = (
                 assert_and_log(
                     policy_id in existing_policies,
@@ -342,12 +355,17 @@ def validate_policies(user_yaml_dict):
     logger.info("- Validating policies")
     ok = True
 
-    existing_resources = resource_tree_to_paths(user_yaml_dict)
-    existing_roles = get_field_from_list(user_yaml_dict["rbac"].get("roles", []), "id")
-    for policy in user_yaml_dict["rbac"].get("policies", []):
+    # TODO: once rbac field fully deprecated just replace authz_or_rbac with "authz" everywhere
+    authz_or_rbac = "authz" if "authz" in user_yaml_dict else "rbac"
 
-        # check resource paths in "rbac.policies" are valid
-        # given "rbac.resources" resource tree
+    existing_resources = resource_tree_to_paths(user_yaml_dict)
+    existing_roles = get_field_from_list(
+        user_yaml_dict[authz_or_rbac].get("roles", []), "id"
+    )
+    for policy in user_yaml_dict[authz_or_rbac].get("policies", []):
+
+        # check resource paths in "authz.policies" are valid
+        # given "authz.resources" resource tree
         for resource_path in policy["resource_paths"]:
             ok = (
                 assert_and_log(
@@ -396,8 +414,11 @@ def validate_clients(user_yaml_dict):
     logger.info("- Validating clients")
     ok = True
 
+    # TODO: once rbac field fully deprecated just replace authz_or_rbac with "authz" everywhere
+    authz_or_rbac = "authz" if "authz" in user_yaml_dict else "rbac"
+
     existing_policies = get_field_from_list(
-        user_yaml_dict["rbac"].get("policies", []), "id"
+        user_yaml_dict[authz_or_rbac].get("policies", []), "id"
     )
     for client_name, client_details in user_yaml_dict.get("clients", {}).items():
         # check policies are defined
@@ -429,8 +450,11 @@ def validate_users(user_yaml_dict):
     logger.info("- Validating users")
     ok = True
 
+    # TODO: once rbac field fully deprecated just replace authz_or_rbac with "authz" everywhere
+    authz_or_rbac = "authz" if "authz" in user_yaml_dict else "rbac"
+
     existing_policies = get_field_from_list(
-        user_yaml_dict["rbac"].get("policies", []), "id"
+        user_yaml_dict[authz_or_rbac].get("policies", []), "id"
     )
     existing_resources = resource_tree_to_paths(user_yaml_dict)
     for user_email, user_access in user_yaml_dict["users"].items():
@@ -449,7 +473,7 @@ def validate_users(user_yaml_dict):
         )
 
         # check resource paths in "users.projects.resource" are valid
-        # given "rbac.resources" resource tree
+        # given "authz.resources" resource tree
         for project in user_access.get("projects", {}):
             if "resource" in project:
                 ok = (
@@ -474,7 +498,7 @@ def validate_users(user_yaml_dict):
 
             # if no resource path is provided, make sure "auth_id" exists
             # XXX: disabled for now because some commons do not have
-            # the "rbac" section yet
+            # the "authz" section yet
             # else:
             #     resource_path = auth_id_to_resource_path(
             #         user_yaml_dict, project["auth_id"]
