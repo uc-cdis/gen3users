@@ -22,6 +22,8 @@ with open(file_name, "r") as f:
 
 ## user.yaml conversion
 
+Converts a `user.yaml` file from the old format to the new ABAC-based centralized auth format, required by the latest Fence and Arborist.
+
 Convert a `user.yaml` file using the CLI:
 ```
 pip install gen3users
