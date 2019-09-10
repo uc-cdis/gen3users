@@ -163,6 +163,10 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
         "authz": BASE_ABAC,
     }
 
+    # Remove when rbac field in useryaml properly deprecated
+    if "authz" not in old_user_yaml:
+        old_user_yaml["authz"] = old_user_yaml.get("rbac")
+
     # add basic roles to ABAC list of roles
     add_basic_roles(new_user_yaml)
 
@@ -170,11 +174,7 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
     existing_resources = [
         item.get("name") for item in new_user_yaml["authz"]["resources"]
     ]
-    if "authz" in old_user_yaml:
-        old_resources = old_user_yaml.get("authz", {}).get("resources", [])
-    else:
-        # Remove when rbac field in useryaml properly deprecated
-        old_resources = old_user_yaml.get("rbac", {}).get("resources", [])
+    old_resources = old_user_yaml.get("authz", {}).get("resources", [])
     for resource in old_resources:
         if resource["name"] == "programs":
             # duplicate programs for backwards compatibility
