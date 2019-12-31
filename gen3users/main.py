@@ -26,7 +26,7 @@ def validate(files):
             with open(file_name, "r") as f:
                 user_yaml = f.read()
                 validate_user_yaml(user_yaml, file_name)
-        except Exception as e:
+        except AssertionError as e:
             logger.error("{}: {}".format(type(e).__name__, e))
             failed_validation = True
     if failed_validation:
