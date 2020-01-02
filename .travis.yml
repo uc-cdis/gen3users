@@ -2,12 +2,9 @@ language: python
 dist: xenial
 python:
 - '3.6'
-install:
+script:
 - pip install pipenv
 - pipenv install --dev --deploy --python `which python`
-- pip install -e git+https://git@github.com/uc-cdis/wool.git#egg=wool
-script:
-- if [[ $PR_NUMBER != false ]]; then GITHUB_TOKEN=$GH_TOKEN wool; fi
 before_deploy:
 - sed -i.bak "s/=get_version()/='$TRAVIS_TAG'/g" setup.py
 - cat setup.py
@@ -25,8 +22,6 @@ after_deploy:
 - pip install gen3git
 - gen3git release
 env:
-  matrix:
-  - REPOSITORY="uc-cdis/gen3users" PR_NUMBER="$TRAVIS_PULL_REQUEST"
   global:
   - PIPENV_IGNORE_VIRTUALENVS=1
   - secure: Y8lvxm4A28mVuYyigHNpW4r4MI4NsrOr2agprV/Qkjuk0xEqLWSIcVly1Gi2foVLb+ahNl+anmBjMXiuBQLSnA+ZX3/AQvkCkCzUOM6U0HOtbl9mpPg7EtxAiXwmCLu4/aHLYa2rx+7FYCz+qry2SV3wDGWYoBP1ITdAgcpztAYx69V8BBqDseI8liFxJt9ZvgZQdyhpVBfIbnpyN8n7efw/NFtUOmsj9teXlCibPjSKXzAITreibQJR6TPy/ksgDSOhVn46jfCxa1NQG9uElM2Ehjv3+V4PYmEyLmyWdb3zWvLDt8CEw1SuEMX5PT8aE1Vi/WVVoHKMWTcaFTQLVeDvgchtbYxhp0MgHMOt0t00B/O/WwpKsE4hSFAcK9SAAHEIJ80IpRkHU4G/7BjZIUaKlgU/XBmTa+cn+y19q78hL8RyXRWeslAk9/t5pfpLeuzvdx/oYl0vzdmSM7XNwz87YOg+g9+CkJRZD199QVhBKgioE77j8FSQVz6jfxm/8khjEPT0r46IxveCej4kqLQaZzjymVo3jteKEHZELF3u3kpzC4GlbjKvc7k3SGoHfW+SiANFVPAncefBM7VvlBHk15OF4YfPX1CVlu96tuWFAVvL64OOdvf9SCxm40zlsc3hYTdRXZFGdbfkniab036bu6FvYTNkbLVEiyzVKwE=
