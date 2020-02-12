@@ -45,11 +45,13 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     if "authz" not in user_yaml_dict:
         user_yaml_dict["authz"] = user_yaml_dict.get("rbac")
 
+    existing_resources = resource_tree_to_paths(user_yaml_dict)
     ok = validate_syntax(user_yaml_dict)
     ok = validate_groups(user_yaml_dict) and ok
-    ok = validate_policies(user_yaml_dict) and ok
+    ok = validate_policies(user_yaml_dict, existing_resources) and ok
     ok = validate_clients(user_yaml_dict) and ok
-    ok = validate_users(user_yaml_dict) and ok
+    ok = validate_user_project_to_resource(user_yaml_dict, existing_resources) and ok
+    ok = validate_users(user_yaml_dict, existing_resources) and ok
 
     if not ok:
         raise AssertionError(
@@ -154,9 +156,11 @@ def validate_syntax(user_yaml_dict):
     # check expected sections are defined
     # assert_and_log("authz" in user_yaml_dict, 'Missing "authz" section')
     # TODO: after all user.yamls are migrated to new format, uncomment the assertion and remove these 2 lines (waiting on dcfstaging)
-    if "authz" not in user_yaml_dict:
+    if not user_yaml_dict.get("authz"):
         user_yaml_dict["authz"] = {}
-    ok = assert_and_log("users" in user_yaml_dict, 'Missing "users" section') and ok
+
+    if not user_yaml_dict.get("users"):
+        user_yaml_dict["users"] = {}
 
     # check expected fields are defined
     # - in authz.groups
@@ -294,6 +298,7 @@ def validate_groups(user_yaml_dict):
     )
     for group in user_yaml_dict["authz"].get("groups", []):
         # check users are defined
+        #### TODO test if users just being in groups is fine with usersync
         for user_email in group["users"]:
             ok = (
                 assert_and_log(
@@ -304,6 +309,7 @@ def validate_groups(user_yaml_dict):
                 )
                 and ok
             )
+
         # check policies are defined
         for policy_id in group["policies"]:
             ok = (
@@ -332,7 +338,7 @@ def validate_groups(user_yaml_dict):
     return ok
 
 
-def validate_policies(user_yaml_dict):
+def validate_policies(user_yaml_dict, existing_resources):
     """
     Validates the "policies" section of the user.yaml by checking that the
     roles and resources used in the policies are defined in the list of roles
@@ -347,7 +353,6 @@ def validate_policies(user_yaml_dict):
     logger.info("- Validating policies")
     ok = True
 
-    existing_resources = resource_tree_to_paths(user_yaml_dict)
     existing_roles = get_field_from_list(user_yaml_dict["authz"].get("roles", []), "id")
     for policy in user_yaml_dict["authz"].get("policies", []):
 
@@ -420,7 +425,41 @@ def validate_clients(user_yaml_dict):
     return ok
 
 
-def validate_users(user_yaml_dict):
+def validate_user_project_to_resource(user_yaml_dict, existing_resources):
+    logger.info("- Validating user_project_to_resource mapping")
+    ok = True
+
+    for auth_id, resource_path in user_yaml_dict.get(
+        "user_project_to_resource", {}
+    ).items():
+        ok = (
+            assert_and_log(
+                resource_path in existing_resources,
+                'Resource path "{}" for auth_id "{}" is not defined in list of resources'.format(
+                    resource_path, auth_id
+                ),
+            )
+            and ok
+        )
+
+    return ok
+
+
+def get_allowed_auth_ids(user_yaml_dict):
+    resources = user_yaml_dict["authz"].get("resources", [])
+    allowed_auth_ids = set()
+    for r in resources:
+        if r["name"] == "programs":
+            for prog in r.get("subresources", []):
+                allowed_auth_ids.add(prog["name"])
+                for subr in prog.get("subresources", []):
+                    if subr["name"] == "projects":
+                        for proj in subr.get("subresources", []):
+                            allowed_auth_ids.add(proj["name"])
+    return allowed_auth_ids
+
+
+def validate_users(user_yaml_dict, existing_resources):
     """
     Validates the "users" section of the user.yaml by checking that the
     policies assigned to the users are defined in the list of policies.
@@ -437,7 +476,8 @@ def validate_users(user_yaml_dict):
     existing_policies = get_field_from_list(
         user_yaml_dict["authz"].get("policies", []), "id"
     )
-    existing_resources = resource_tree_to_paths(user_yaml_dict)
+    allowed_auth_ids = get_allowed_auth_ids(user_yaml_dict)
+
     for user_email, user_access in user_yaml_dict["users"].items():
 
         # check policies are defined
@@ -477,16 +517,18 @@ def validate_users(user_yaml_dict):
                     and ok
                 )
 
+            # XXX: (pauline) Code below disabled for now because some commons
+            # do not have centralized auth yet, so the auth_id is only used in
+            # Fence. We can uncomment and validate manually if needed
+
             # if no resource path is provided, make sure "auth_id" exists
-            # XXX: disabled for now because some commons do not have
-            # the "authz" section yet
             # else:
-            #     resource_path = auth_id_to_resource_path(
-            #         user_yaml_dict, project["auth_id"]
-            #     )
+            #     auth_id_ok = project["auth_id"] in allowed_auth_ids or project[
+            #         "auth_id"
+            #     ] in user_yaml_dict["authz"].get("user_project_to_resource", {})
             #     ok = (
             #         assert_and_log(
-            #             resource_path,
+            #             auth_id_ok,
             #             'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
             #                 project["auth_id"], user_email
             #             ),
