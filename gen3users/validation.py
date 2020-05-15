@@ -310,6 +310,24 @@ def validate_groups(user_yaml_dict):
                 and ok
             )
 
+        # make sure users are not duplicated
+        seen = set()
+        duplicates = set()
+        for user in group["users"]:
+            if user not in seen:
+                seen.add(user)
+            else:
+                duplicates.add(user)
+        ok = (
+            assert_and_log(
+                not len(duplicates),
+                'Duplicate users in group "{}": {}'.format(
+                    group["name"], list(duplicates)
+                ),
+            )
+            and ok
+        )
+
         # check policies are defined
         for policy_id in group["policies"]:
             ok = (
