@@ -12,7 +12,7 @@ def assert_and_log(assertion_success, error_message):
     """
     If an assertion fails, logs the provided error message and updates
     the global variable "failed_validation" for future use.
-    
+
     Args:
         assertion_success (bool): result of an assertion.
         error_message (str): message to display if the assertion failed.
@@ -125,6 +125,7 @@ def validate_resource_syntax_recursive(resource):
         assert_and_log("name" in resource, "Resource without name: {}".format(resource))
         and ok
     )
+
     subresources = resource.get("subresources", [])
     ok = (
         assert_and_log(
@@ -134,7 +135,16 @@ def validate_resource_syntax_recursive(resource):
         and ok
     )
     for subresource in subresources:
-        validate_resource_syntax_recursive(subresource)
+        ok = validate_resource_syntax_recursive(subresource) and ok
+
+        if resource["name"] == "programs":
+            ok = (
+                assert_and_log(
+                    "-" not in subresource["name"],
+                    "{}: Program names cannot contain '-'".format(subresource["name"]),
+                )
+                and ok
+            )
 
     return ok
 
