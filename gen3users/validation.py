@@ -52,6 +52,8 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     ok = validate_clients(user_yaml_dict) and ok
     ok = validate_user_project_to_resource(user_yaml_dict, existing_resources) and ok
     ok = validate_users(user_yaml_dict, existing_resources) and ok
+    ok = validate_roles(user_yaml_dict) and ok
+
 
     if not ok:
         raise AssertionError(
@@ -563,5 +565,56 @@ def validate_users(user_yaml_dict, existing_resources):
             #         )
             #         and ok
             #     )
+
+    return ok
+
+
+def validate_roles(user_yaml_dict):
+    """
+    Validates the "roles" section of the user.yaml by checking that all
+    required fields are present.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
+    """
+    logger.info("- Validating roles")
+    ok = True
+
+    role_ids = get_field_from_list(user_yaml_dict["authz"].get("roles", []), "id")
+    ok = (
+            assert_and_log(
+                role_ids and all(role_ids),
+                'One or more roles do not have an ID'
+            )
+            and ok)
+
+    role_permissions = get_field_from_list(user_yaml_dict["authz"].get("roles", []), "permissions")
+    ok = (
+        assert_and_log(
+            role_permissions and all(role_permissions),
+            'One or more roles do not have a permissions field'
+        )
+        and ok)
+
+    id_permissions = zip(role_ids, role_permissions)
+    for roleid, perm_field in id_permissions:
+        action_field = get_field_from_list(perm_field, "action")
+        ok =(
+            assert_and_log(
+                action_field and all(action_field),
+                'Action field missing in permissions from role {}'.format(roleid)
+            )
+            and ok)
+
+        id_field = get_field_from_list(perm_field, "id")
+        ok =(
+            assert_and_log(
+                id_field and all(id_field),
+                'ID field missing in permissions from role {} '.format(roleid)
+            )
+            and ok)
 
     return ok
