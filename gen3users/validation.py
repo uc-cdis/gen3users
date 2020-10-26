@@ -581,59 +581,49 @@ def validate_roles(user_yaml_dict):
     """
     logger.info("- Validating roles")
     ok = True
-
-    role_ids = get_field_from_list(user_yaml_dict["authz"].get("roles", []), "id")
-    ok = (
-        assert_and_log(
-            role_ids and all(role_ids), "One or more roles do not have an ID"
-        )
-        and ok
-    )
-
-    role_permissions = get_field_from_list(
-        user_yaml_dict["authz"].get("roles", []), "permissions"
-    )
-    ok = (
-        assert_and_log(
-            role_permissions and all(role_permissions),
-            "One or more roles do not have a permissions field",
-        )
-        and ok
-    )
-
-    id_permissions = zip(role_ids, role_permissions)
-    for roleid, perm_field in id_permissions:
-        action_field = get_field_from_list(perm_field, "action")
+    roles = user_yaml_dict["authz"].get("roles", [])
+    for role in roles:
+        role_id = role.get("id")
+        permissions = role.get("permissions")
         ok = (
             assert_and_log(
-                action_field and all(action_field),
-                "Action field missing in permissions from role {}".format(roleid),
+                role_id is not None, "Role ID not specified in role {}".format(role)
+            )
+            and assert_and_log(
+                permissions is not None,
+                "No permissions specified for role {}".format(role_id),
             )
             and ok
         )
-        for field in action_field:
+        for perm in permissions:
+            perm_id = perm.get("id")
+            action = perm.get("action")
             ok = (
                 assert_and_log(
-                    field.get("method"),
-                    "No method specified for action in role {}".format(roleid),
+                    perm_id is not None,
+                    "Permission ID not specified in role {}".format(role_id),
+                )
+                and assert_and_log(
+                    action is not None,
+                    "Permission Action is not specified in role".format(role_id),
                 )
                 and ok
             )
+            service = action.get("service")
+            method = action.get("method")
             ok = (
                 assert_and_log(
-                    field.get("service"),
-                    "No service specified for action in role {}".format(roleid),
+                    service is not None,
+                    "Service is not specified for action permission {} in role {}".format(
+                        perm_id, role_id
+                    ),
+                )
+                and assert_and_log(
+                    method is not None,
+                    "Method is not specified for permission {} in role {}".format(
+                        perm_id, role_id
+                    ),
                 )
                 and ok
             )
-
-        id_field = get_field_from_list(perm_field, "id")
-        ok = (
-            assert_and_log(
-                id_field and all(id_field),
-                "ID field missing in permissions from role {} ".format(roleid),
-            )
-            and ok
-        )
-
     return ok
