@@ -605,7 +605,7 @@ def validate_roles(user_yaml_dict):
                 )
                 and assert_and_log(
                     action is not None,
-                    "action not specified in permissions in role".format(role_id),
+                    "action not specified in permission {} in role".format(perm_id , role_id),
                 )
                 and ok
             )
