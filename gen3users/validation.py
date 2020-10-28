@@ -587,11 +587,11 @@ def validate_roles(user_yaml_dict):
         permissions = role.get("permissions")
         ok = (
             assert_and_log(
-                role_id is not None, "Role ID not specified in role {}".format(role)
+                role_id is not None, "id not specified in role {}".format(role)
             )
             and assert_and_log(
                 permissions is not None,
-                "No permissions specified for role {}".format(role_id),
+                "permissions specified for role {}".format(role_id),
             )
             and ok
         )
@@ -601,11 +601,11 @@ def validate_roles(user_yaml_dict):
             ok = (
                 assert_and_log(
                     perm_id is not None,
-                    "Permission ID not specified in role {}".format(role_id),
+                    "id not specified in permissions in role {}".format(role_id),
                 )
                 and assert_and_log(
                     action is not None,
-                    "Permission Action is not specified in role".format(role_id),
+                    "action not specified in permissions in role".format(role_id),
                 )
                 and ok
             )
@@ -614,13 +614,13 @@ def validate_roles(user_yaml_dict):
             ok = (
                 assert_and_log(
                     service is not None,
-                    "Service is not specified for action permission {} in role {}".format(
+                    "service is not specified for action permission {} in role {}".format(
                         perm_id, role_id
                     ),
                 )
                 and assert_and_log(
                     method is not None,
-                    "Method is not specified for permission {} in role {}".format(
+                    "method is not specified for permission {} in role {}".format(
                         perm_id, role_id
                     ),
                 )
