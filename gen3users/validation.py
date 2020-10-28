@@ -579,6 +579,7 @@ def validate_roles(user_yaml_dict):
     Return:
         ok(bool): whether the validation succeeded.
     """
+
     logger.info("- Validating roles")
     ok = True
     roles = user_yaml_dict["authz"].get("roles", [])
@@ -601,11 +602,15 @@ def validate_roles(user_yaml_dict):
             ok = (
                 assert_and_log(
                     perm_id is not None,
-                    "id not specified in permission {} in role {}".format(perm, role_id),
+                    "id not specified in permission {} in role {}".format(
+                        perm, role_id
+                    ),
                 )
                 and assert_and_log(
                     action is not None,
-                    "action not specified in permission {} in role".format(perm_id , role_id),
+                    "action not specified in permission {} in role".format(
+                        perm_id, role_id
+                    ),
                 )
                 and ok
             )
