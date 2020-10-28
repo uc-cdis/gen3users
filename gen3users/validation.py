@@ -52,6 +52,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     ok = validate_clients(user_yaml_dict) and ok
     ok = validate_user_project_to_resource(user_yaml_dict, existing_resources) and ok
     ok = validate_users(user_yaml_dict, existing_resources) and ok
+    ok = validate_roles(user_yaml_dict) and ok
 
     if not ok:
         raise AssertionError(
@@ -564,4 +565,70 @@ def validate_users(user_yaml_dict, existing_resources):
             #         and ok
             #     )
 
+    return ok
+
+
+def validate_roles(user_yaml_dict):
+    """
+    Validates the "roles" section of the user.yaml by checking that all
+    required fields are present.
+
+    Args:
+        user_yaml_dict (dict): Contents of a user.yaml file.
+
+    Return:
+        ok(bool): whether the validation succeeded.
+    """
+
+    logger.info("- Validating roles")
+    ok = True
+    roles = user_yaml_dict["authz"].get("roles", [])
+    for role in roles:
+        role_id = role.get("id")
+        permissions = role.get("permissions")
+        ok = (
+            assert_and_log(
+                role_id is not None, "id not specified in role {}".format(role)
+            )
+            and assert_and_log(
+                permissions is not None,
+                "permissions not specified for role {}".format(role_id),
+            )
+            and ok
+        )
+        for perm in permissions:
+            perm_id = perm.get("id")
+            action = perm.get("action")
+            ok = (
+                assert_and_log(
+                    perm_id is not None,
+                    "id not specified in permission {} in role {}".format(
+                        perm, role_id
+                    ),
+                )
+                and assert_and_log(
+                    action is not None,
+                    "action not specified in permission {} in role".format(
+                        perm_id, role_id
+                    ),
+                )
+                and ok
+            )
+            service = action.get("service")
+            method = action.get("method")
+            ok = (
+                assert_and_log(
+                    service is not None,
+                    "service is not specified for action permission {} in role {}".format(
+                        perm_id, role_id
+                    ),
+                )
+                and assert_and_log(
+                    method is not None,
+                    "method is not specified for permission {} in role {}".format(
+                        perm_id, role_id
+                    ),
+                )
+                and ok
+            )
     return ok
