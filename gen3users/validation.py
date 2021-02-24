@@ -201,14 +201,14 @@ def validate_syntax(user_yaml_dict):
         )
         ok = (
             assert_and_log(
-                "role_ids" in policy,
+                policy.get("role_ids"),
                 'Policy "{}" does not have role_ids'.format(policy["id"]),
             )
             and ok
         )
         ok = (
             assert_and_log(
-                "resource_paths" in policy,
+                policy.get("resource_paths"),
                 'Policy "{}" does not have resource_paths'.format(policy["id"]),
             )
             and ok
@@ -221,7 +221,7 @@ def validate_syntax(user_yaml_dict):
         for project in user_access.get("projects", {}):
             ok = (
                 assert_and_log(
-                    "auth_id" in project,
+                    project.get("auth_id"),
                     'Project without auth_id for user "{}": {}'.format(
                         user_email, project
                     ),
@@ -230,7 +230,7 @@ def validate_syntax(user_yaml_dict):
             )
             ok = (
                 assert_and_log(
-                    "privilege" in project,
+                    project.get("privilege"),
                     'Project "{}" without privilege section for user "{}"'.format(
                         project["auth_id"], user_email
                     ),
@@ -587,11 +587,9 @@ def validate_roles(user_yaml_dict):
         role_id = role.get("id")
         permissions = role.get("permissions")
         ok = (
-            assert_and_log(
-                role_id is not None, "id not specified in role {}".format(role)
-            )
+            assert_and_log(role_id, "id not specified in role {}".format(role))
             and assert_and_log(
-                permissions is not None,
+                permissions,
                 "permissions not specified for role {}".format(role_id),
             )
             and ok
@@ -601,13 +599,13 @@ def validate_roles(user_yaml_dict):
             action = perm.get("action")
             ok = (
                 assert_and_log(
-                    perm_id is not None,
+                    perm_id,
                     "id not specified in permission {} in role {}".format(
                         perm, role_id
                     ),
                 )
                 and assert_and_log(
-                    action is not None,
+                    action,
                     "action not specified in permission {} in role".format(
                         perm_id, role_id
                     ),
@@ -618,13 +616,13 @@ def validate_roles(user_yaml_dict):
             method = action.get("method")
             ok = (
                 assert_and_log(
-                    service is not None,
+                    service,
                     "service is not specified for action permission {} in role {}".format(
                         perm_id, role_id
                     ),
                 )
                 and assert_and_log(
-                    method is not None,
+                    method,
                     "method is not specified for permission {} in role {}".format(
                         perm_id, role_id
                     ),
