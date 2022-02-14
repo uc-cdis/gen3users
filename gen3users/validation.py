@@ -43,7 +43,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
 
     # Remove when rbac field in useryaml properly deprecated
     if "authz" not in user_yaml_dict:
-        user_yaml_dict["authz"] = user_yaml_dict.get("rbac")
+        user_yaml_dict["authz"] = user_yaml_dict.get("rbac", {})
 
     existing_resources = resource_tree_to_paths(user_yaml_dict)
     ok = validate_syntax(user_yaml_dict)
