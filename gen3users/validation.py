@@ -37,7 +37,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     try:
         user_yaml_dict = yaml.safe_load(user_yaml)
         assert user_yaml_dict, "Empty file"
-    except:
+    except Exception:
         logger.error("Unable to parse YAML file")
         raise
 
