@@ -9,4 +9,4 @@ gen3users = {editable = true,path = "."}
 [dev-packages]
 
 [requires]
-python_version = "3.6"
+python_version = "3.9"
