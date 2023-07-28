@@ -26,6 +26,3 @@ gen3users = "gen3users.main:main"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
-
-[tool.poetry.extras]
-s3log = ["aiobotocore"]  # install with `poetry install -E s3log`
