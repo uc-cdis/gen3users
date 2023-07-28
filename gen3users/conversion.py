@@ -188,10 +188,8 @@ def convert_old_user_yaml_to_new_user_yaml(user_yaml, dest_path=None):
     # convert user privileges into roles and policies
     existing_policies = [item.get("id") for item in new_user_yaml["authz"]["policies"]]
     for user_email, user_access in old_user_yaml.get("users", {}).items():
-
         # generate user policies
         for project in user_access.get("projects", []):
-
             # get the resource path.
             # if no resource path is specified, use the auth_id
             if "resource" not in project:

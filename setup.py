@@ -33,6 +33,7 @@ setup(
     license="Apache",
     packages=["gen3users"],
     include_package_data=True,  # include non-code files from MANIFEST.in
-    install_requires=["PyYAML~=5.1", "click", "cdislogging~=1.0.0"],
+    install_requires=["PyYAML", "click", "cdislogging~=1.0.0"],
+    extras_require={"dev": ["pytest"]},
     entry_points={"console_scripts": ["gen3users=gen3users.main:main"]},
 )

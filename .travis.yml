@@ -2,12 +2,14 @@ language: python
 dist: xenial
 python:
 - '3.9'
-script:
+install:
 - pip install pipenv
 - pipenv install --dev --deploy --python `which python`
-before_deploy:
 - sed -i.bak "s/=get_version()/='$TRAVIS_TAG'/g" setup.py
 - if [ $(python setup.py --version) == '0.0.0' ]; then travis_terminate 1; fi
+- pip install -e '.[dev]' # install dev dependencies
+script:
+- run pytest -vv ./tests
 deploy:
   provider: pypi
   user: uc-ctds
