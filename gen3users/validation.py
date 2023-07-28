@@ -658,7 +658,7 @@ def check_broad_roles(user_yaml_dict):
             for role_name in role_names:
                 role = all_roles_dict[role_name]
                 for perm in role["permissions"]:
-                    msg = f"Permission '{perm['id']}' in role '{role_name}' in policy '{policy_name}' has 'service = *'. This is unsecure because policy '{policy_name}' is granted to public group '{group_name}'. Fix suggestion: restrict this policy to specific methods and services, for example 'read in peregrine' + 'read in guppy' + 'read-storage in fence' for public datasets."
+                    msg = f"Permission '{perm['id']}' in role '{role_name}' in policy '{policy_name}' has 'service = *'. This is unsecure because policy '{policy_name}' is granted to public group '{group_name}'. Fix suggestion: restrict this policy to specific methods and services, for example for public datasets, 'read in peregrine' + 'read in guppy' + 'read-storage in fence'."
                     ok = assert_and_log(perm["action"]["service"] != "*", msg) and ok
 
     return ok
