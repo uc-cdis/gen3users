@@ -1,26 +1,25 @@
 language: python
 dist: xenial
 python:
-- '3.9'
+- 3.9
+env:
+  global:
+  - secure: KY3stltR4M1obId8R1s98gUYdxCqZdfnUMJ+5qRiXIdMy+ZsyHlZ/cVtjpIqPBkmDVXRpC9sp66j7ipNl/WEA1Su5mkQSuec/h2d9aN57MrzXClPs4qSadyCvOfA8wjfKbuw6eTBvX6WF7UA6eC4nv07q+sAp2CuaMRm8fi5jbk9fcF+3QCFmd5ORuBXoVBRnU3lvsf3ih8l0ESxFfgjAfsuDoXYV9/8eyhknn9rpSHuX1lP0Ut/+Cs40bF8M3ujknA8GfdkMF9dRdSOvqyX7Jz4A/AiXKG69ZJXxR1XdZuZmdlMytjBw/XrSjNm/m2/gYca+MAPGA1/FEO20yf7a9VItJVBppO+QJ6QFZ+gB0vz7lRy88grAk1iFwi0+kMmXgcInjlb+iStw+MIbdBTzPW7AFkIEDqyN5XKhJgah8cFvYE0GOP/ROXr3AgBEvT3yj7kO+fHE7bmCkpjEaTIKkosb+/jTO3ty8YWHjT7NVaNFmX5i6gxKa3jbiSLtPkEsByNZOYtuIOWIkvnLOVNiC9Y9E6ZN0F+qiKinuDYqvmxx+HvHhJmjO+/E5DSh0cqgN3OFYUB/1kVEI/B+MaX/KbVdAA8KCdXvaClURcbBSZlD4nqOsGUcDmGbri/lMmG/9ozVrmlwyfZ6cfRapmBRouC6EcQ2FGLqZe4r3LYngc= # pragma: allowlist secret
+install:
+- pip install poetry
+- poetry install -vv --no-interaction
 script:
-- pip install pipenv
-- pipenv install --dev --deploy --python `which python`
+- poetry run pytest -vv ./tests
 before_deploy:
-- sed -i.bak "s/=get_version()/='$TRAVIS_TAG'/g" setup.py
-- if [ $(python setup.py --version) == '0.0.0' ]; then travis_terminate 1; fi
+- poetry config pypi-token.pypi $PYPI_API_TOKEN
+- poetry build -f sdist
 deploy:
-  provider: pypi
-  user: uc-ctds
-  skip_existing: true
+  provider: script
+  script: poetry publish -n -vv
   skip_cleanup: true
   on:
+    repo: uc-cdis/gen3utils
     tags: true
-  password:
-    secure: zvUtKctGWJ2R7sdRPTcIvz8C1aYuwV5XoSJpDwLtkTU412JCTSo/5Uh9eIq5N/Oj3+BGCjgXzWN8l4spG5feCqzvcmBezUFsvnnElYaxrMWy5EY1SsLsaHq5arhDE5nCx9Trk2jg2KayWVdGSu3iDobZETX/5ozz/OPWSJQsNHzbeHY3SQOU4nDzlXHqxSVEg27Fl3KQA8v2rPk6hKmIeK5T+mMKzQ2P8HxKh6HQ+fgfy7T4bcZev8ojYsqSGxIgKMESa2/FX4tHdwQZkVd4KVM4QHv2szxuJovGzbkDSFsQoAQjWi75AIWtgrb6kCp6i+4afOB6l7Nxbqbze91Sy3pkLMsrLohIMP5oeX15Mn6W8RnwVj6LSmxFLFbfE0crZEI626uD5wwCaQ+rZwBSIPNYZYyVsZroWkcbIea8qpL7T7vbGYXnWS9GW5yfhjRirEqbI6E1Yw1+K5E83zsoMqMD977KVICMUyrF+iEe/hXA6gAea/xsI+0MNmiaup2Jdhq1yD0KyMNOE2Jk+IDY7zZII0qy+N7i56DphXKil/V9xNU7B0zUWGqkaGMqK42ky+U90vP4dW6syX9B1RQknqwhcjrQMPlKsx61pqIkZFsccZpcpx1hkCzusRvHeihGCA3h+G3brHXU9Lbvc0MAcVu4ES7MidkFS5DYutFr6Sw=
 after_deploy:
 - pip install gen3git
 - gen3git release
-env:
-  global:
-  - PIPENV_IGNORE_VIRTUALENVS=1
-  - secure: Y8lvxm4A28mVuYyigHNpW4r4MI4NsrOr2agprV/Qkjuk0xEqLWSIcVly1Gi2foVLb+ahNl+anmBjMXiuBQLSnA+ZX3/AQvkCkCzUOM6U0HOtbl9mpPg7EtxAiXwmCLu4/aHLYa2rx+7FYCz+qry2SV3wDGWYoBP1ITdAgcpztAYx69V8BBqDseI8liFxJt9ZvgZQdyhpVBfIbnpyN8n7efw/NFtUOmsj9teXlCibPjSKXzAITreibQJR6TPy/ksgDSOhVn46jfCxa1NQG9uElM2Ehjv3+V4PYmEyLmyWdb3zWvLDt8CEw1SuEMX5PT8aE1Vi/WVVoHKMWTcaFTQLVeDvgchtbYxhp0MgHMOt0t00B/O/WwpKsE4hSFAcK9SAAHEIJ80IpRkHU4G/7BjZIUaKlgU/XBmTa+cn+y19q78hL8RyXRWeslAk9/t5pfpLeuzvdx/oYl0vzdmSM7XNwz87YOg+g9+CkJRZD199QVhBKgioE77j8FSQVz6jfxm/8khjEPT0r46IxveCej4kqLQaZzjymVo3jteKEHZELF3u3kpzC4GlbjKvc7k3SGoHfW+SiANFVPAncefBM7VvlBHk15OF4YfPX1CVlu96tuWFAVvL64OOdvf9SCxm40zlsc3hYTdRXZFGdbfkniab036bu6FvYTNkbLVEiyzVKwE=

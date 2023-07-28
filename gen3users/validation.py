@@ -10,8 +10,7 @@ logging.basicConfig()
 
 def assert_and_log(assertion_success, error_message):
     """
-    If an assertion fails, logs the provided error message and updates
-    the global variable "failed_validation" for future use.
+    If an assertion fails, logs the provided error message.
 
     Args:
         assertion_success (bool): result of an assertion.
@@ -53,6 +52,7 @@ def validate_user_yaml(user_yaml, name="user.yaml"):
     ok = validate_user_project_to_resource(user_yaml_dict, existing_resources) and ok
     ok = validate_users(user_yaml_dict, existing_resources) and ok
     ok = validate_roles(user_yaml_dict) and ok
+    ok = check_broad_roles(user_yaml_dict) and ok
 
     if not ok:
         raise AssertionError(
@@ -384,7 +384,6 @@ def validate_policies(user_yaml_dict, existing_resources):
 
     existing_roles = get_field_from_list(user_yaml_dict["authz"].get("roles", []), "id")
     for policy in user_yaml_dict["authz"].get("policies", []):
-
         # check resource paths in "authz.policies" are valid
         # given "authz.resources" resource tree
         for resource_path in policy["resource_paths"]:
@@ -508,7 +507,6 @@ def validate_users(user_yaml_dict, existing_resources):
     allowed_auth_ids = get_allowed_auth_ids(user_yaml_dict)
 
     for user_email, user_access in user_yaml_dict["users"].items():
-
         # check policies are defined
         user_policies = user_access.get("policies", [])
         invalid_policies = set(user_policies).difference(existing_policies)
@@ -629,4 +627,38 @@ def validate_roles(user_yaml_dict):
                 )
                 and ok
             )
+    return ok
+
+
+def check_broad_roles(user_yaml_dict):
+    """
+    Make sure 'service = *' is not used for anonymous or all_users policies. This is dangerous because it
+    may allow users to access things in services that were not intended to be accessible. For example:
+    - Anonymous users have access to public project "projectA". We use a "reader" role with "service = *".
+    - If a user has "read" access for service "requestor" in a project, the Requestor service allows them
+    to see access requests for the project.
+    - Because of "service = *", anonymous users can see who requested access to "projectA", and whether their
+    access was approved!
+    """
+    ok = True
+
+    all_policies_dict = {
+        e["id"]: e for e in user_yaml_dict["authz"].get("policies", [])
+    }
+    all_roles_dict = {e["id"]: e for e in user_yaml_dict["authz"].get("roles", [])}
+
+    an_policies = user_yaml_dict["authz"].get("anonymous_policies", [])
+    al_policies = user_yaml_dict["authz"].get("all_users_policies", [])
+    for group_name, policies in [
+        ("anonymous_policies", an_policies),
+        ("all_users_policies", al_policies),
+    ]:
+        for policy_name in policies:
+            role_names = all_policies_dict[policy_name]["role_ids"]
+            for role_name in role_names:
+                role = all_roles_dict[role_name]
+                for perm in role["permissions"]:
+                    msg = f"Permission '{perm['id']}' in role '{role_name}' in policy '{policy_name}' has 'service = *'. This is unsecure because policy '{policy_name}' is granted to public group '{group_name}'. Fix suggestion: restrict this policy to specific methods and services, for example for public datasets, 'read in peregrine' + 'read in guppy' + 'read-storage in fence'."
+                    ok = assert_and_log(perm["action"]["service"] != "*", msg) and ok
+
     return ok
