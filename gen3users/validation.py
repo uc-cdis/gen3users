@@ -640,6 +640,7 @@ def check_broad_roles(user_yaml_dict):
     - Because of "service = *", anonymous users can see who requested access to "projectA", and whether their
     access was approved!
     """
+    logger.info("- Checking roles security")
     ok = True
 
     all_policies_dict = {
