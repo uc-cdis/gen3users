@@ -457,9 +457,9 @@ def validate_user_project_to_resource(user_yaml_dict, existing_resources):
     logger.info("- Validating user_project_to_resource mapping")
     ok = True
 
-    for auth_id, resource_path in user_yaml_dict.get(
-        "user_project_to_resource", {}
-    ).items():
+    for auth_id, resource_path in (
+        user_yaml_dict.get("authz", {}).get("user_project_to_resource", {}).items()
+    ):
         ok = (
             assert_and_log(
                 resource_path in existing_resources,
