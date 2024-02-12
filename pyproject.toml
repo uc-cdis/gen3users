@@ -5,7 +5,7 @@ description = "Utils for Gen3 Commons user management"
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/uc-cdis/gen3utils"
+repository = "https://github.com/uc-cdis/gen3users"
 include = [
   "CHANGELOG.md",
   "NOTICE",
