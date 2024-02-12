@@ -544,24 +544,23 @@ def validate_users(user_yaml_dict, existing_resources):
                     and ok
                 )
 
-            # XXX: (pauline) Code below disabled for now because some commons
-            # do not have centralized auth yet, so the auth_id is only used in
-            # Fence. We can uncomment and validate manually if needed
-
             # if no resource path is provided, make sure "auth_id" exists
-            # else:
-            #     auth_id_ok = project["auth_id"] in allowed_auth_ids or project[
-            #         "auth_id"
-            #     ] in user_yaml_dict["authz"].get("user_project_to_resource", {})
-            #     ok = (
-            #         assert_and_log(
-            #             auth_id_ok,
-            #             'auth_id "{}" for user "{}" is not found in list of resources and no resource path has been provided'.format(
-            #                 project["auth_id"], user_email
-            #             ),
-            #         )
-            #         and ok
-            #     )
+            # NOTE: may need to ignore or comment this out if the data commons
+            # does not use Arborist authz, since the auth_id is only used in
+            # Fence.
+            else:
+                auth_id_ok = project["auth_id"] in allowed_auth_ids or project[
+                    "auth_id"
+                ] in user_yaml_dict["authz"].get("user_project_to_resource", {})
+                ok = (
+                    assert_and_log(
+                        auth_id_ok,
+                        'auth_id "{}" for user "{}" is not in the list of resources and no resource path has been provided in `user_project_to_resource`'.format(
+                            project["auth_id"], user_email
+                        ),
+                    )
+                    and ok
+                )
 
     return ok
 
