@@ -5,6 +5,7 @@ import os
 import yaml
 
 from .validation import validate_user_yaml
+from .base_abac import BASE_ABAC
 
 
 logger = get_logger("gen3users")
@@ -22,13 +23,6 @@ yaml.add_representer(
         self, data.items()
     ),
 )
-
-
-# "base_abac.json" contains ABAC elements that are included in all
-# user.yaml files
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(CURRENT_DIR, "base_abac.json")) as f:
-    BASE_ABAC = json.load(f)
 
 
 PRIVILEGE_TO_ROLE_NAME = {
