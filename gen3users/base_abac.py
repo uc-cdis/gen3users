@@ -1,3 +1,5 @@
+# "BASE_ABAC" contains ABAC elements that are included in all
+# user.yaml files
 BASE_ABAC = {
     "groups": [],
     "anonymous_policies": ["open_reader"],
