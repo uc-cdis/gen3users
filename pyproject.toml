@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gen3users"
-version = "1.0.3"
+version = "1.1.0"
 description = "Utils for Gen3 Commons user management"
 authors = ["CTDS UChicago <cdis@uchicago.edu>"]
 license = "Apache-2.0"
