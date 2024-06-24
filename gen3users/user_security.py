@@ -65,6 +65,8 @@ def _check_yaml(
 
     if response.status_code == 401:
         raise TokenError("Need to set environment variable USER_YAML_GITHUB_PAT")
+    if token == "" or token == None:
+        print("Token variable is empty")
     content = response.content
     content = yaml.safe_load(content)
 
