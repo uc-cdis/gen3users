@@ -2,10 +2,18 @@ from gen3users.user_security import _check_yaml
 
 
 def test_open_access():
-    phsids = ["Cornell_GWAS", "Glioma", "Bladder_cancer"]
-    assert _check_yaml(phsids, "users/canine/user.yaml") == True
+    with open("tests/user.yaml") as f:
+        content = f.read()
+    assert _check_yaml("phs000218", content) == True
+
+
+def test_hard_coded():
+    with open("tests/user.yaml") as f:
+        content = f.read()
+    assert _check_yaml("test", content) == True
 
 
 def test_closed_access():
-    phsids = ["phs001287", "phs001374"]
-    assert _check_yaml(phsids, "users/ncicrdc/user.yaml") == False
+    with open("tests/user.yaml") as f:
+        content = f.read()
+    assert _check_yaml("phs001175", content) == False
