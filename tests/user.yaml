@@ -1,0 +1,64 @@
+cloud_providers: {}
+groups: {}
+rbac:
+  # policies automatically given to anyone, even if they haven't authenticated
+  anonymous_policies: ['open_data_reader']
+
+  # policies automatically given to authenticated users (in addition to their other
+  # policies)
+  all_users_policies: ['open_data_reader']
+
+  groups:
+    - name: 'open_data_admins'
+      policies: ['open_data_admin']
+      users: []
+
+
+  user_project_to_resource:
+    phs001175: /programs/phs001175
+    test: /programs/test
+    phs000218: /programs/phs000218
+
+
+  policies:
+    # Open data policies
+    - id: 'open_data_reader'
+      description: ''
+      role_ids:
+        - 'guppy_reader'
+        - 'fence_reader'
+        - 'peregrine_reader'
+        - 'sheepdog_reader'
+      resource_paths: ['/open','/test']
+    - id: 'open_data_admin'
+      description: ''
+      role_ids:
+        - 'creator'
+        - 'guppy_reader'
+        - 'fence_reader'
+        - 'peregrine_reader'
+        - 'sheepdog_reader'
+        - 'updater'
+        - 'deleter'
+        - 'storage_writer'
+      resource_paths: ['/open']
+    # All programs policy
+    - id: 'all_programs_reader'
+      description: ''
+      role_ids:
+        - 'guppy_reader'
+        - 'fence_reader'
+        - 'peregrine_reader'
+        - 'sheepdog_reader'
+      resource_paths: ['/programs']
+
+  resources:
+    - name: 'open'
+      subresources:
+        - name: 'projects'
+          subresources:
+          - name: 'phs000218'
+    - name: 'programs'
+      subresources:
+        - name: 'test'
+        - name: 'phs001175'
