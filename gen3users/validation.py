@@ -217,13 +217,13 @@ def validate_syntax(user_yaml_dict):
     for resource in user_yaml_dict["authz"].get("resources", []):
         ok = validate_resource_syntax_recursive(resource) and ok
     # - in users
-    for user_email, user_access in user_yaml_dict["users"].items():
+    for username, user_access in user_yaml_dict["users"].items():
         for project in user_access.get("projects", {}):
             ok = (
                 assert_and_log(
                     project.get("auth_id"),
                     'Project without auth_id for user "{}": {}'.format(
-                        user_email, project
+                        username, project
                     ),
                 )
                 and ok
@@ -232,7 +232,7 @@ def validate_syntax(user_yaml_dict):
                 assert_and_log(
                     project.get("privilege"),
                     'Project "{}" without privilege section for user "{}"'.format(
-                        project["auth_id"], user_email
+                        project["auth_id"], username
                     ),
                 )
                 and ok
@@ -310,12 +310,12 @@ def validate_groups(user_yaml_dict):
     for group in user_yaml_dict["authz"].get("groups", []):
         # check users are defined
         #### TODO test if users just being in groups is fine with usersync
-        for user_email in group["users"]:
+        for username in group["users"]:
             ok = (
                 assert_and_log(
-                    user_email in user_yaml_dict["users"],
+                    username in user_yaml_dict["users"],
                     'User "{}" in group "{}" is not defined in main user list'.format(
-                        user_email, group["name"]
+                        username, group["name"]
                     ),
                 )
                 and ok
@@ -506,7 +506,7 @@ def validate_users(user_yaml_dict, existing_resources):
     )
     allowed_auth_ids = get_allowed_auth_ids(user_yaml_dict)
 
-    for user_email, user_access in user_yaml_dict["users"].items():
+    for username, user_access in user_yaml_dict["users"].items():
         # check policies are defined
         user_policies = user_access.get("policies", [])
         invalid_policies = set(user_policies).difference(existing_policies)
@@ -514,7 +514,7 @@ def validate_users(user_yaml_dict, existing_resources):
             assert_and_log(
                 len(invalid_policies) == 0,
                 'Policies {} for user "{}" are not defined in list of policies'.format(
-                    invalid_policies, user_email
+                    invalid_policies, username
                 ),
             )
             and ok
@@ -528,7 +528,7 @@ def validate_users(user_yaml_dict, existing_resources):
                     assert_and_log(
                         project["resource"].startswith("/"),
                         'Resource path "{}" in project "{}" for user "{}" should start with a "/"'.format(
-                            project["resource"], project["auth_id"], user_email
+                            project["resource"], project["auth_id"], username
                         ),
                     )
                     and ok
@@ -538,7 +538,7 @@ def validate_users(user_yaml_dict, existing_resources):
                     assert_and_log(
                         project["resource"] in existing_resources,
                         'Resource "{}" in project "{}" for user "{}" is not defined in resource tree'.format(
-                            project["resource"], project["auth_id"], user_email
+                            project["resource"], project["auth_id"], username
                         ),
                     )
                     and ok
@@ -556,11 +556,14 @@ def validate_users(user_yaml_dict, existing_resources):
                     assert_and_log(
                         auth_id_ok,
                         'auth_id "{}" for user "{}" is not in the list of resources and no resource path has been provided in `user_project_to_resource`'.format(
-                            project["auth_id"], user_email
+                            project["auth_id"], username
                         ),
                     )
                     and ok
                 )
+                for method in project.get("privilege", []):
+                    valid, err_msg = validate_method(method, username)
+                    ok = assert_and_log(valid, err_msg) and ok
 
     return ok
 
@@ -601,7 +604,10 @@ def validate_roles(user_yaml_dict):
                         perm, role_id
                     ),
                 )
-                and assert_and_log(
+                and ok
+            )
+            ok = (
+                assert_and_log(
                     action,
                     "action not specified in permission {} in role".format(
                         perm_id, role_id
@@ -609,6 +615,8 @@ def validate_roles(user_yaml_dict):
                 )
                 and ok
             )
+            if not action:
+                continue
             service = action.get("service")
             method = action.get("method")
             ok = (
@@ -618,7 +626,10 @@ def validate_roles(user_yaml_dict):
                         perm_id, role_id
                     ),
                 )
-                and assert_and_log(
+                and ok
+            )
+            ok = (
+                assert_and_log(
                     method,
                     "method is not specified for permission {} in role {}".format(
                         perm_id, role_id
@@ -626,7 +637,39 @@ def validate_roles(user_yaml_dict):
                 )
                 and ok
             )
+            valid, err_msg = validate_method(method, role_id)
+            ok = assert_and_log(valid, err_msg) and ok
     return ok
+
+
+def validate_method(method, location):
+    """
+    Validates a method by checking that it's one of the known methods.
+    Useful to flag common mistakes such as "read_storage" instead of "read-storage".
+
+    Args:
+        method (str): Method to validate.
+
+    Return:
+        (ok(bool), err_msg(str)): whether the method is valid and if not, an error message to log.
+    """
+    known_methods = [
+        "*",
+        "read",
+        "read-storage",
+        "write",
+        "write-storage",
+        "create",
+        "update",
+        "delete",
+        "file_upload",
+        "access",
+        "upload",
+    ]
+    return (
+        method in known_methods,
+        f"Method '{method}' for '{location}' is not one of the known methods: {known_methods}",
+    )
 
 
 def check_broad_roles(user_yaml_dict):
