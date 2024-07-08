@@ -5,7 +5,7 @@ Module for checking user yaml configurations for security concerns
 import yaml
 import requests
 from os import environ
-from sys import exit, stdin
+from sys import exit, stdin, getrecursionlimit
 from select import select
 from io import StringIO
 from cdislogging import get_logger
@@ -15,21 +15,6 @@ logging = get_logger("__name__", log_level="info")
 
 
 def check_yaml(
-    resource_names,
-    path,
-    repo="commons-users",
-    owner="uc-cdis",
-    verbose=False,
-    token=None,
-):
-    anything_found = _check_yaml(
-        resource_names, path, repo=repo, owner=owner, verbose=verbose, token=token
-    )
-    _receive_input(anything_found)
-    return
-
-
-def _check_yaml(
     resource_names,
     path,
     repo="commons-users",
@@ -48,8 +33,13 @@ def _check_yaml(
         verbose (bool): if true scans entire user.yaml file and finds any instance of specified resources
     """
 
-    if type(resource_names) == str:
-        resource_names = [resource_names]
+    content = _retrieve_yaml(path, repo, owner, token)
+    anything_found = _check_yaml(resource_names, content, verbose)
+    _receive_input(anything_found)
+    return
+
+
+def _retrieve_yaml(path, repo, owner, token):
     if token == None:
         token = environ.get("USER_YAML_GITHUB_PAT")
 
@@ -65,8 +55,27 @@ def _check_yaml(
 
     if response.status_code == 401 and (token == "" or token == None):
         raise TokenError("Need to set environment variable USER_YAML_GITHUB_PAT")
-    content = response.content
+    content = response.content.decode()
+    return content
+
+
+def _check_yaml(
+    resource_names,
+    content,
+    verbose=False,
+):
+    raw_content = content
     content = yaml.safe_load(content)
+
+    if type(resource_names) == str:
+        resource_names = [resource_names]
+    elif type(resource_names) == list:  # Requested change #1
+        if type(resource_names[0]) != str:
+            raise TypeError(
+                "Please Enter a valid resource name, or list of resource names"
+            )
+    else:
+        raise TypeError("Please Enter a valid resource name, or list of resource names")
 
     # Figure Out whether authz or rbac
     auth_meth = ""
@@ -76,6 +85,8 @@ def _check_yaml(
     except KeyError:
         auth_meth = "authz"
 
+    open_policies = _collect_open_policies(content, auth_meth)  # Requested Change #3
+
     # Store whether any instance of any resource has been found
     anything_found = False
 
@@ -84,7 +95,7 @@ def _check_yaml(
         # Scans for any occurrence of phsid
         if verbose:
             lines = []
-            f = StringIO(response.content.decode())
+            f = StringIO(raw_content)
             logging.info(f"========= Scanning file for {phsid} occurrence =========")
             found = False
 
@@ -107,58 +118,11 @@ def _check_yaml(
 
         logging.info(f"========= Scanning file for {phsid} in open projects =========")
         found = False
-        # Track down open_data_reader
-        policies = content[auth_meth]["policies"]
-        for i in range(len(policies)):
-            if (
-                policies[i]["id"] in content[auth_meth]["anonymous_policies"]
-                or policies[i]["id"] in content[auth_meth]["all_users_policies"]
-            ):
-                policy = policies[i]
-                break
 
-        # Check if phsid is hardcoded into the open data reader resource path
-        if (
-            phsid in policy["resource_paths"]
-            or "/programs/" + phsid in policy["resource_paths"]
-        ):
-            logging.info("PHSID Directly in Open Data Reader Resource Path")
-
-        # Check if phsid is in one of the resource paths
-        else:
-            resources = content[auth_meth]["resources"]
-            open_resources = policy["resource_paths"]
-            for i in range(len(open_resources)):
-                resource = resources
-                path = open_resources[i].split("/")
-                for j in range(len(path)):
-                    for k in range(len(resource)):
-                        if resource[k]["name"] == path[j]:
-                            try:
-                                resource = resource[k]["subresources"]
-                                break
-                            except KeyError:
-                                break
-
-                locs = []
-                for j in range(len(resource)):
-                    if resource[j]["name"] == "projects":
-                        resource = resource[j]["subresources"]
-                        for k in range(len(resource)):
-                            if resource[k]["name"] == phsid:
-                                found = True
-                                anything_found = True
-                                location = "resources" + "/".join(path)
-                                locs.append(location)
-
-            if found == True:
-                logging.info(f"{phsid} found in {*locs,} listed as open\n")
-
-            if found == False:
-                logging.info(f"{phsid} not found in open projects \n")
-                if verbose == False:
-                    # If verbose is true and no phsid is found we would have already continued
-                    continue
+        # Iterate through open_policies
+        found, anything_found = _check_open_policies(
+            open_policies, phsid, content, auth_meth, found, anything_found
+        )
 
     return anything_found
 
@@ -182,6 +146,107 @@ def _receive_input(anything_found):
 
     # If we reach the end of the function we can return
     return
+
+
+def _collect_open_policies(content, auth_meth):
+    # Track down open data policies (anonymous or all_users)
+    try:
+        policies = content[auth_meth]["policies"]
+    except KeyError:  # Requested Change #2
+        raise KeyError(
+            "User.yaml in unexpected format. Please reach out to the DCF team at Gen3 for more assistance."
+        )
+    open_policies = []
+
+    for i in range(len(policies)):
+        # Some user.yaml files don't have these specified so handle with try block
+        try:
+            bool1 = policies[i]["id"] in content[auth_meth]["anonymous_policies"]
+        except KeyError:
+            bool1 = False
+
+        try:
+            bool2 = policies[i]["id"] in content[auth_meth]["all_users_policies"]
+        except KeyError:
+            bool2 = False
+        # If a policy is in either all_users_policies or anonymous_policies it is open
+        if bool1 or bool2:
+            open_policies.append(policies[i])
+    return open_policies
+
+
+def _resource_recursion(subrsrc, phsid, locs):
+    """recurses through nested subresources in order to find instance of phsid"""
+    for i in range(len(subrsrc)):
+        if subrsrc[i]["name"] == phsid:
+            return True, locs
+        if "subresources" in subrsrc[i].keys():
+            subrsrc[i]["subresources"]
+            locs.append(subrsrc[i]["name"])
+            subrsrc, locs = _resource_recursion(subrsrc[i]["subresources"], phsid, locs)
+            if subrsrc == True:
+                return subrsrc, locs
+            continue
+    return False, []
+
+
+def _check_open_policies(
+    open_policies, phsid, content, auth_meth, found, anything_found
+):
+    # Iterate through open policies
+    for policy in open_policies:
+        for resource_path in policy["resource_paths"]:
+            # Check if phsid is hardcoded into the open data reader resource path
+            if resource_path[-len(phsid) :] == phsid:
+                logging.info(f"{phsid} found directly in {policy['id']} Resource Path")
+                found = True
+                anything_found = True
+
+            # Otherwise check under resource path subresources
+            else:
+                try:
+                    path = content[auth_meth]["user_project_to_resource"][
+                        resource_path.strip("/")
+                    ]
+                    path = path.split("/")
+                except KeyError:
+                    path = resource_path.split("/")
+
+                resources = content[auth_meth]["resources"]
+
+                subresources = resources
+
+                # Iterate through path
+                continue_outer = False
+                for j in range(len(path)):
+                    for k in range(len(subresources)):
+                        if path[j] == subresources[k]["name"]:
+                            try:
+                                subresources = subresources[k]["subresources"]
+                                break
+                            except KeyError:
+                                # If we run into a keyerror then the resource at the end of the
+                                # current resource_path has no subresources that could hold
+                                # the current phsid. continue to next resource_path
+                                continue_outer = True
+                                break
+                if continue_outer == True:
+                    continue
+
+                locs = []
+
+                found, locs = _resource_recursion(subresources, phsid, locs)
+                locs = path + locs
+                locs = "/".join(locs)
+
+                if found == True:
+                    logging.info(f"{phsid} found in open resource under {locs}\n")
+                    anything_found = True
+
+    if found == False:
+        logging.info(f"{phsid} not found in open projects \n")
+
+    return found, anything_found
 
 
 class TokenError(Exception):
