@@ -665,6 +665,7 @@ def validate_method(method, location):
         "file_upload",
         "access",
         "upload",
+        "launch",
     ]
     return (
         method in known_methods,
