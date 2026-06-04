@@ -126,6 +126,15 @@ def validate_resource_syntax_recursive(resource):
         assert_and_log("name" in resource, "Resource without name: {}".format(resource))
         and ok
     )
+    ok = (
+        assert_and_log(
+            type(resource["name"]) == str,
+            'Resource should be a string: {} from resource "{}"'.format(
+                resource["name"], resource
+            ),
+        )
+        and ok
+    )
 
     subresources = resource.get("subresources", [])
     ok = (
